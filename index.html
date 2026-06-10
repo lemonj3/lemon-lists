@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Lists</title>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="My Lists" />
+  <meta name="theme-color" content="#FFE566" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ═══════════════════════════════════════
+       THEMES — 7가지 팔레트 기반
+       톤 계층: t0(배경) → t1(칩) → t2(버튼) → t3(탭 활성)
+       단계 격차를 최소화해 자연스럽게
+    ═══════════════════════════════════════ */
+
+    /* 🤍 소프트 화이트 — 흑백 미니멀 */
+    [data-theme="white"] {
+      --t0:     #FDFCFF;
+      --t1:     #F0EFED;
+      --t2:     #3D3D3D;
+      --t3:     #1C1C1C;
+      --t-txt:  #FFFFFF;
+      --surface:#FFFFFF;
+      --border: #E8E8E6;
+      --text:   #1C1C1C;
+      --muted:  #909090;
+      --shadow: 0 2px 12px rgba(0,0,0,.06);
+      --struct: #3D3D3D;
+      --struct-dk:#1C1C1C;
+      --done:   #B0B0B0;
+      --danger: #c0856a;
+    }
+
+    /* 🌸 파스텔 핑크 */
+    [data-theme="pink"] {
+      --t0:     #FEF8F9;
+      --t1:     #F9DDE4;
+      --t2:     #F2C4CE;
+      --t3:     #E8A8B6;
+      --t-txt:  #6a2838;
+      --surface:#FFFFFF;
+      --border: #F5D4DC;
+      --text:   #3D2028;
+      --muted:  #B88898;
+      --shadow: 0 4px 20px rgba(200,100,130,.08);
+      --struct: #D08898;
+      --struct-dk:#8a4858;
+      --done:   #F2C4CE;
+      --danger: #c06060;
+    }
+
+    /* 🌿 파스텔 그린 */
+    [data-theme="green"] {
+      --t0:     #F5FAF5;
+      --t1:     #DCF0DC;
+      --t2:     #C8E6C9;
+      --t3:     #AED6B0;
+      --t-txt:  #2a4a2c;
+      --surface:#FFFFFF;
+      --border: #D4ECD5;
+      --text:   #283828;
+      --muted:  #80A882;
+      --shadow: 0 4px 20px rgba(80,160,90,.08);
+      --struct: #7CB880;
+      --struct-dk:#3a6840;
+      --done:   #C8E6C9;
+      --danger: #c0856a;
+    }
+
+    /* 🍋 파스텔 레몬 (기본) */
+    [data-theme="lemon"] {
+      --t0:     #FEFDF0;
+      --t1:     #FFF9C4;
+      --t2:     #FFF098;
+      --t3:     #FFE566;
+      --t-txt:  #4a3a00;
+      --surface:#FFFFFF;
+      --border: #F0EAB0;
+      --text:   #3D3820;
+      --muted:  #A89860;
+      --shadow: 0 4px 20px rgba(180,160,40,.08);
+      --struct: #B8A040;
+      --struct-dk:#6a5800;
+      --done:   #C8D898;
+      --danger: #c0856a;
+    }
+
+    /* 🩵 파스텔 블루 */
+    [data-theme="blue"] {
+      --t0:     #F5F9FF;
+      --t1:     #D8EEFF;
+      --t2:     #BBDEFB;
+      --t3:     #98CCF8;
+      --t-txt:  #183060;
+      --surface:#FFFFFF;
+      --border: #CCE8FA;
+      --text:   #1a2a48;
+      --muted:  #6888B0;
+      --shadow: 0 4px 20px rgba(80,140,220,.08);
+      --struct: #68A8D8;
+      --struct-dk:#2860A0;
+      --done:   #BBDEFB;
+      --danger: #c0856a;
+    }
+
+    /* 💜 파스텔 라벤더 */
+    [data-theme="lavender"] {
+      --t0:     #FAF8FF;
+      --t1:     #F0EAF8;
+      --t2:     #EDE7F6;
+      --t3:     #D8CEEE;
+      --t-txt:  #3a2860;
+      --surface:#FFFFFF;
+      --border: #E4DCF4;
+      --text:   #302848;
+      --muted:  #9880B8;
+      --shadow: 0 4px 20px rgba(140,100,200,.08);
+      --struct: #9878C8;
+      --struct-dk:#5838A0;
+      --done:   #D8CEEE;
+      --danger: #c0856a;
+    }
+
+    /* ☁️ 소프트 그레이 */
+    [data-theme="gray"] {
+      --t0:     #F8F8F7;
+      --t1:     #F0EFED;
+      --t2:     #E0DEDB;
+      --t3:     #C8C5C0;
+      --t-txt:  #383530;
+      --surface:#FFFFFF;
+      --border: #E8E6E2;
+      --text:   #3D3D38;
+      --muted:  #989590;
+      --shadow: 0 4px 20px rgba(120,118,110,.08);
+      --struct: #888480;
+      --struct-dk:#484440;
+      --done:   #C8C5C0;
+      --danger: #c0856a;
+    }
+
+    /* ═══════════════════════════════════════
+       BASE STYLES
+    ═══════════════════════════════════════ */
+    body {
+      font-family: 'Pretendard', 'Segoe UI', system-ui, sans-serif;
+      background: var(--t0);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 80px;
+      transition: background .3s, color .3s;
+    }
+    .app { max-width: 600px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 28px; position: relative; }
+    .header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; color: var(--text); font-family: 'Gaegu', cursive; }
+    .header h1 span { color: var(--struct); }
+    .today-badge {
+      display: inline-block;
+      background: var(--t1); color: var(--t-txt);
+      font-size: .85rem; font-weight: 700;
+      padding: 3px 12px; border-radius: 20px; margin-top: 6px;
+      border: 1px solid var(--t2);
+      font-family: 'Gaegu', cursive;
+    }
+
+    /* 테마 버튼 */
+    .theme-btn {
+      position: absolute; top: 4px; right: 0;
+      background: var(--t1); border: 1.5px solid var(--t2);
+      border-radius: 12px; padding: 6px 8px;
+      cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; gap: 4px;
+      font-size: .72rem; font-weight: 700; color: var(--t-txt);
+    }
+    .theme-btn:hover { background: var(--t2); }
+    .theme-btn svg { width: 14px; height: 14px; stroke: var(--t-txt); }
+
+    /* 테마 패널 */
+    .theme-panel {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,.3); z-index: 100;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 16px;
+    }
+    .theme-panel.hidden { display: none; }
+    .theme-inner {
+      background: var(--surface); border-radius: 24px 24px 20px 20px;
+      padding: 24px; width: 100%; max-width: 600px;
+      box-shadow: 0 -4px 40px rgba(0,0,0,.15);
+    }
+    .theme-inner h3 { font-size: .9rem; font-weight: 800; color: var(--text); margin-bottom: 16px; }
+    .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .theme-option {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 8px; border-radius: 16px; cursor: pointer;
+      border: 2.5px solid transparent; transition: all .15s;
+    }
+    .theme-option:hover { border-color: var(--t3); }
+    .theme-option.selected { border-color: var(--struct); }
+    .theme-swatch {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(0,0,0,.08);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .theme-option span { font-size: .72rem; font-weight: 700; color: var(--text); }
+    .theme-close {
+      width: 100%; margin-top: 14px; padding: 11px;
+      background: var(--t1); color: var(--t-txt);
+      border: 1.5px solid var(--t2); border-radius: 12px;
+      font-size: .88rem; font-weight: 700; cursor: pointer;
+    }
+    .theme-close:hover { background: var(--t2); }
+
+    /* ── Category Tabs ── */
+    .tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 8px; margin-bottom: 20px;
+    }
+    .tab {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 4px;
+      border: 2px solid var(--border); border-radius: 18px;
+      cursor: pointer; background: var(--surface);
+      box-shadow: var(--shadow); transition: all .18s;
+      font-size: .82rem; font-weight: 700; color: var(--muted);
+      font-family: 'Gaegu', cursive;
+      position: relative;
+    }
+    .tab svg { width: 22px; height: 22px; stroke: var(--muted); transition: stroke .18s; }
+    .tab.active { border-color: var(--t3); background: var(--t3); color: var(--t-txt); }
+    .tab.active svg { stroke: var(--t-txt); }
+    .tab:not(.active):hover { border-color: var(--t2); background: var(--t1); color: var(--t-txt); }
+    .tab:not(.active):hover svg { stroke: var(--t-txt); }
+    .tab .badge {
+      position: absolute; top: 6px; right: 8px;
+      background: var(--danger); color: #fff;
+      font-size: .6rem; font-weight: 700;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    }
+
+    /* ── Stats Pills ── */
+    .stats { display: flex; gap: 8px; margin-bottom: 20px; }
+    .stat-pill {
+      flex: 1; min-width: 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 10px 8px;
+      box-shadow: var(--shadow); text-align: center;
+      cursor: pointer; transition: all .18s; user-select: none;
+    }
+    .stat-pill:hover { border-color: var(--t2); background: var(--t1); }
+    .stat-pill.active { background: var(--t2); border-color: var(--t3); }
+    .stat-pill.active .stat-num,
+    .stat-pill.active .stat-lbl { color: var(--t-txt); }
+    .stat-num { font-size: 1.4rem; font-weight: 800; color: var(--text); font-family: 'Gaegu', cursive; }
+    .stat-lbl { font-size: .78rem; color: var(--muted); font-weight: 700; margin-top: 2px; font-family: 'Gaegu', cursive; }
+    .stat-pill.overdue-pill { background: #fdf0ea; }
+    .stat-pill.overdue-pill .stat-num { color: var(--danger); }
+    .stat-pill.overdue-pill.active { background: var(--danger); border-color: #9a6050; }
+    .stat-pill.overdue-pill.active .stat-num,
+    .stat-pill.overdue-pill.active .stat-lbl { color: #fff; }
+
+    /* ── Add Form ── */
+    .add-form {
+      background: var(--surface); border-radius: 20px; padding: 16px;
+      box-shadow: var(--shadow); margin-bottom: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      border: 1.5px solid var(--border);
+    }
+    .add-form .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .add-form input, .add-form select {
+      flex: 1; min-width: 0; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: .88rem; color: var(--text);
+      background: var(--t0); outline: none;
+      transition: border .15s; font-family: inherit;
+    }
+    .add-form input:focus, .add-form select:focus { border-color: var(--t3); }
+    .add-form input[type="text"] { flex: 2; }
+    .add-btn {
+      width: 100%; padding: 11px;
+      background: var(--t2); color: var(--t-txt);
+      border: 1.5px solid var(--t3); border-radius: 12px;
+      font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .15s;
+      font-family: 'Gaegu', cursive;
+    }
+    .add-btn:hover { background: var(--t3); }
+    .add-btn:active { transform: scale(.98); }
+
+    /* ── Item Cards ── */
+    .items-list { display: flex; flex-direction: column; gap: 10px; }
+    .empty-state { text-align: center; padding: 48px 0; color: var(--muted); font-size: .9rem; }
+    .empty-state .e { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    .item-card {
+      background: var(--surface); border-radius: 16px; padding: 14px 16px;
+      box-shadow: var(--shadow);
+      display: flex; align-items: flex-start; gap: 12px;
+      border: 1.5px solid var(--border); border-left: 4px solid var(--struct);
+      transition: opacity .2s;
+    }
+    .item-card.done   { opacity: .5; }
+    .item-card.overdue { border-left-color: var(--danger); }
+
+    .check-btn {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border); background: transparent;
+      cursor: pointer; flex-shrink: 0; margin-top: 2px;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .check-btn:hover { border-color: var(--done); background: var(--done); }
+    .check-btn.checked { background: var(--done); border-color: var(--struct); }
+    .check-btn.checked::after { content: '✓'; color: #fff; font-size: .75rem; font-weight: 800; }
+
+    .item-body { flex: 1; min-width: 0; }
+    .item-text { font-size: .9rem; font-weight: 600; word-break: break-word; color: var(--text); }
+    .item-text.done-text { text-decoration: line-through; color: var(--done); }
+
+    .item-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
+    .meta-chip {
+      font-size: .7rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: var(--t0); color: var(--muted); border: 1px solid var(--border);
+    }
+    .dday-chip { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .dday-chip.ok    { background: #ddeee0; color: var(--struct-dk); }
+    .dday-chip.soon  { background: var(--t1); color: var(--t-txt); }
+    .dday-chip.over  { background: #f5e0d8; color: var(--danger); }
+    .dday-chip.today { background: var(--t2); color: var(--t-txt); border: 1px solid var(--t3); }
+
+    .sub-chip { font-size: .68rem; padding: 1px 7px; border-radius: 8px; font-weight: 700; }
+    .priority-high   { background: #f5e0d8; color: var(--danger); }
+    .priority-medium { background: var(--t1); color: var(--t-txt); }
+    .priority-low    { background: #ddeee0; color: var(--struct-dk); }
+    .media-movie  { background: #ddeee0; color: var(--struct-dk); }
+    .media-drama  { background: var(--t1); color: var(--t-txt); }
+    .media-book   { background: #e8e4f0; color: #5a4a80; }
+    .qty-badge { font-size: .7rem; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: var(--t1); color: var(--t-txt); border: 1px solid var(--t2); }
+
+    .delete-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 1.1rem; padding: 2px 4px;
+      border-radius: 8px; transition: color .15s, background .15s; flex-shrink: 0;
+    }
+    .delete-btn:hover { color: var(--danger); }
+
+    /* ── 기한 편집 ── */
+    .due-chip-btn {
+      font-size: .7rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: var(--t0); color: var(--muted);
+      border: 1px solid var(--border); cursor: pointer; transition: all .15s;
+    }
+    .due-chip-btn:hover { border-color: var(--t3); background: var(--t1); color: var(--t-txt); }
+    .due-chip-btn.no-due { border-style: dashed; }
+    .due-edit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .due-edit-row input[type="date"] {
+      padding: 4px 8px; border: 1.5px solid var(--t3); border-radius: 10px;
+      font-size: .78rem; color: var(--text); background: var(--surface);
+      outline: none; font-family: inherit;
+    }
+    .due-save-btn   { padding: 4px 10px; background: var(--t2); color: var(--t-txt); border: 1px solid var(--t3); border-radius: 8px; font-size: .75rem; font-weight: 700; cursor: pointer; }
+    .due-clear-btn  { padding: 4px 8px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; font-size: .75rem; cursor: pointer; }
+    .due-cancel-btn { padding: 4px 8px; background: none; color: var(--muted); border: none; font-size: .75rem; cursor: pointer; text-decoration: underline; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--t2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>My <span>Lists</span> 🍋</h1>
+    <div class="today-badge" id="todayBadge"></div>
+    <button class="theme-btn" onclick="openTheme()">
+      <i data-lucide="palette"></i> 테마
+    </button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-cat="shop" onclick="switchCat('shop')">
+      <i data-lucide="shopping-cart"></i><span>쇼핑</span>
+      <span class="badge" id="badge-shop" style="display:none"></span>
+    </div>
+    <div class="tab" data-cat="personal" onclick="switchCat('personal')">
+      <i data-lucide="house"></i><span>개인</span>
+      <span class="badge" id="badge-personal" style="display:none"></span>
+    </div>
+    <div class="tab" data-cat="work" onclick="switchCat('work')">
+      <i data-lucide="monitor"></i><span>업무</span>
+      <span class="badge" id="badge-work" style="display:none"></span>
+    </div>
+    <div class="tab" data-cat="media" onclick="switchCat('media')">
+      <i data-lucide="clapperboard"></i><span>보고싶은것</span>
+      <span class="badge" id="badge-media" style="display:none"></span>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="add-form" id="addForm"></div>
+  <div class="items-list" id="itemsList"></div>
+</div>
+
+<!-- 테마 패널 -->
+<div class="theme-panel hidden" id="themePanel" onclick="handlePanelClick(event)">
+  <div class="theme-inner">
+    <h3>🎨 테마 선택</h3>
+    <div class="theme-grid" id="themeGrid"></div>
+    <button class="theme-close" onclick="closeTheme()">닫기</button>
+  </div>
+</div>
+
+<script>
+// ── 테마 정의 ────────────────────────────────────────────
+const THEMES = [
+  { key: 'lemon',    label: '파스텔 레몬',   swatch: '#FFF9C4', emoji: '🍋' },
+  { key: 'pink',     label: '파스텔 핑크',   swatch: '#F2C4CE', emoji: '🌸' },
+  { key: 'green',    label: '파스텔 그린',   swatch: '#C8E6C9', emoji: '🌿' },
+  { key: 'blue',     label: '파스텔 블루',   swatch: '#BBDEFB', emoji: '🩵' },
+  { key: 'lavender', label: '파스텔 라벤더', swatch: '#EDE7F6', emoji: '💜' },
+  { key: 'white',    label: '소프트 화이트', swatch: '#FDFCFF', emoji: '🤍' },
+  { key: 'gray',     label: '소프트 그레이', swatch: '#F0EFED', emoji: '☁️' },
+];
+
+let currentTheme = localStorage.getItem('myListsTheme') || 'lemon';
+
+function applyTheme(key) {
+  document.documentElement.setAttribute('data-theme', key);
+  currentTheme = key;
+  localStorage.setItem('myListsTheme', key);
+}
+
+function openTheme() {
+  const grid = document.getElementById('themeGrid');
+  grid.innerHTML = THEMES.map(t => `
+    <div class="theme-option${t.key === currentTheme ? ' selected' : ''}"
+         onclick="pickTheme('${t.key}')">
+      <div class="theme-swatch" style="background:${t.swatch}">${t.emoji}</div>
+      <span>${t.label}</span>
+    </div>`).join('');
+  document.getElementById('themePanel').classList.remove('hidden');
+}
+
+function pickTheme(key) {
+  applyTheme(key);
+  lucide.createIcons();
+  // 선택 표시 갱신
+  document.querySelectorAll('.theme-option').forEach(el => {
+    el.classList.toggle('selected', el.onclick.toString().includes(`'${key}'`));
+  });
+  openTheme(); // 리렌더
+}
+
+function closeTheme() {
+  document.getElementById('themePanel').classList.add('hidden');
+}
+
+function handlePanelClick(e) {
+  if (e.target === document.getElementById('themePanel')) closeTheme();
+}
+
+// ── 데이터 ───────────────────────────────────────────────
+let items = JSON.parse(localStorage.getItem('myListsApp') || '[]');
+let currentCat = 'shop';
+let currentFilter = 'active';
+
+function save() { localStorage.setItem('myListsApp', JSON.stringify(items)); }
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function formatDate(str) {
+  if (!str) return null;
+  const [y,m,d] = str.split('-');
+  return `${y}.${m}.${d}`;
+}
+function dday(str) {
+  if (!str) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(str); due.setHours(0,0,0,0);
+  return Math.round((due - today) / 86400000);
+}
+function ddayLabel(str) {
+  const d = dday(str);
+  if (d === 0) return { text: 'D-Day', cls: 'today' };
+  if (d > 0)   return { text: `D-${d}`, cls: d <= 3 ? 'soon' : 'ok' };
+  return { text: `D+${Math.abs(d)} 초과`, cls: 'over' };
+}
+function elapsed(created) {
+  const diff = Math.round((new Date() - new Date(created)) / 86400000);
+  if (diff === 0) return '오늘 추가';
+  if (diff === 1) return '어제 추가';
+  return `${diff}일 전 추가`;
+}
+
+// ── 렌더 ─────────────────────────────────────────────────
+function render() {
+  renderTodayBadge();
+  renderTabs();
+  renderStats();
+  renderForm();
+  renderList();
+  lucide.createIcons();
+}
+
+function renderTodayBadge() {
+  const d = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('todayBadge').textContent =
+    `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} (${days[d.getDay()]})`;
+}
+
+function renderTabs() {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.className = 'tab' + (t.dataset.cat === currentCat ? ' active' : '');
+    const ov = items.filter(i => i.cat === t.dataset.cat && !i.done && i.due && dday(i.due) < 0).length;
+    const b = document.getElementById(`badge-${t.dataset.cat}`);
+    b.textContent = ov; b.style.display = ov > 0 ? 'flex' : 'none';
+  });
+}
+
+function renderStats() {
+  const ci = items.filter(i => i.cat === currentCat);
+  const done = ci.filter(i => i.done).length;
+  const active = ci.length - done;
+  const overdue = ci.filter(i => !i.done && i.due && dday(i.due) < 0).length;
+  const pills = [
+    { key: 'active', num: active, lbl: '진행 중', cls: '' },
+    { key: 'all',    num: ci.length, lbl: '전체', cls: '' },
+    { key: 'done',   num: done,   lbl: '완료',   cls: '' },
+  ];
+  if (overdue > 0) pills.push({ key: 'overdue', num: overdue, lbl: '⚠️ 기한초과', cls: 'overdue-pill' });
+  document.getElementById('stats').innerHTML = pills.map(p => `
+    <div class="stat-pill ${p.cls}${currentFilter===p.key?' active':''}" onclick="setFilter('${p.key}')">
+      <div class="stat-num">${p.num}</div>
+      <div class="stat-lbl">${p.lbl}</div>
+    </div>`).join('');
+}
+
+function renderForm() {
+  const cat = currentCat;
+  let extra = '';
+  if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px"/>`;
+  if (cat==='work') extra = `<select id="priority"><option value="">우선순위</option><option value="high">🔴 높음</option><option value="medium">🟡 보통</option><option value="low">🟢 낮음</option></select>`;
+  if (cat==='media') extra = `<select id="mediaType"><option value="movie">🎬 영화</option><option value="drama">📺 드라마</option><option value="book">📚 책</option></select>`;
+  document.getElementById('addForm').innerHTML = `
+    <div class="row">
+      <input type="text" id="newText"
+        placeholder="${cat==='shop'?'살 것 추가...':cat==='media'?'제목 추가...':'할 일 추가...'}"
+        onkeydown="if(event.key==='Enter')addItem()" />
+      ${extra}
+    </div>
+    <div class="row">
+      ${cat!=='shop'?`<input type="date" id="dueDate" />`:''}
+      <button class="add-btn" onclick="addItem()">+ 추가</button>
+    </div>`;
+  setTimeout(() => document.getElementById('newText')?.focus(), 50);
+}
+
+function renderList() {
+  let filtered = items.filter(i => i.cat === currentCat);
+  if (currentFilter==='active')  filtered = filtered.filter(i => !i.done);
+  if (currentFilter==='done')    filtered = filtered.filter(i => i.done);
+  if (currentFilter==='overdue') filtered = filtered.filter(i => !i.done && i.due && dday(i.due) < 0);
+  filtered.sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const da = a.due ? dday(a.due) : 9999, db = b.due ? dday(b.due) : 9999;
+    if (da !== db) return da - db;
+    return new Date(b.created) - new Date(a.created);
+  });
+  const container = document.getElementById('itemsList');
+  if (!filtered.length) {
+    const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
+    const [t,s] = msgs[currentFilter]||msgs.all;
+    container.innerHTML = `<div class="empty-state"><span class="e">🌸</span><strong>${t}</strong><br><span style="font-size:.82rem">${s}</span></div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(item => {
+    const dd = item.due ? ddayLabel(item.due) : null;
+    const over = item.due && dday(item.due) < 0 && !item.done;
+    let chips = `<span class="meta-chip">${elapsed(item.created)}</span>`;
+    chips += item.due
+      ? `<button class="due-chip-btn" onclick="openDueEdit('${item.id}')">${formatDate(item.due)}</button>`
+      : `<button class="due-chip-btn no-due" onclick="openDueEdit('${item.id}')">+ 기한</button>`;
+    if (dd && !item.done) chips += `<span class="dday-chip ${dd.cls}">${dd.text}</span>`;
+    if (item.qty)        chips += `<span class="qty-badge">수량 ${item.qty}개</span>`;
+    if (item.priority)   chips += `<span class="sub-chip priority-${item.priority}">${{high:'🔴 높음',medium:'🟡 보통',low:'🟢 낮음'}[item.priority]}</span>`;
+    if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 영화',drama:'📺 드라마',book:'📚 책'}[item.mediaType]}</span>`;
+    return `
+      <div class="item-card${item.done?' done':''}${over?' overdue':''}">
+        <button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>
+        <div class="item-body">
+          <div class="item-text${item.done?' done-text':''}">${escHtml(item.text)}</div>
+          <div class="item-meta">${chips}</div>
+          <div class="due-edit-row" id="due-edit-${item.id}" style="display:none">
+            <input type="date" id="due-input-${item.id}" value="${item.due||''}" />
+            <button class="due-save-btn" onclick="saveDue('${item.id}')">저장</button>
+            <button class="due-clear-btn" onclick="clearDue('${item.id}')">기한 삭제</button>
+            <button class="due-cancel-btn" onclick="closeDueEdit('${item.id}')">취소</button>
+          </div>
+        </div>
+        <button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>
+      </div>`;
+  }).join('');
+}
+
+// ── 액션 ─────────────────────────────────────────────────
+function addItem() {
+  const textEl = document.getElementById('newText');
+  const text = textEl?.value.trim();
+  if (!text) { textEl?.focus(); return; }
+  items.unshift({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    cat: currentCat, text,
+    due:       document.getElementById('dueDate')?.value || '',
+    qty:       document.getElementById('qty')?.value ? parseInt(document.getElementById('qty').value) : null,
+    priority:  document.getElementById('priority')?.value || null,
+    mediaType: document.getElementById('mediaType')?.value || null,
+    done: false, created: todayStr(),
+  });
+  save(); render();
+}
+function toggleDone(id) { const i=items.find(i=>i.id===id); if(i){i.done=!i.done;save();render();} }
+function deleteItem(id) {
+  const item = items.find(i=>i.id===id); if(!item) return;
+  const label = item.text.length>20 ? item.text.slice(0,20)+'…' : item.text;
+  if(!confirm(`"${label}" 을(를) 삭제할까요?`)) return;
+  items = items.filter(i=>i.id!==id); save(); render();
+}
+function switchCat(cat) { currentCat=cat; currentFilter='active'; render(); }
+function setFilter(f) { currentFilter=f; render(); }
+function openDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='flex'; document.getElementById(`due-input-${id}`)?.focus(); }
+function closeDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='none'; }
+function saveDue(id) { const i=items.find(i=>i.id===id); if(i){i.due=document.getElementById(`due-input-${id}`)?.value||'';save();render();} }
+function clearDue(id) { const i=items.find(i=>i.id===id); if(i){i.due='';save();render();} }
+function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── 초기화 ────────────────────────────────────────────────
+applyTheme(currentTheme);
+render();
+
+// ── PWA 서비스 워커 등록 ──────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

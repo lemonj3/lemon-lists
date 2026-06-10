@@ -1,0 +1,18 @@
+{
+  "name": "My Lists",
+  "short_name": "My Lists",
+  "description": "쇼핑·개인·업무·보고싶은것 리스트 관리 앱",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFF9C4",
+  "theme_color": "#FFE566",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

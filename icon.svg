@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#FFF9C4"/>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF9C4"/>
+      <stop offset="100%" stop-color="#FFE566"/>
+    </linearGradient>
+  </defs>
+  <!-- clipboard body -->
+  <rect x="140" y="110" width="232" height="292" rx="20" fill="#fff" opacity="0.9"/>
+  <!-- clipboard clip -->
+  <rect x="206" y="90" width="100" height="44" rx="12" fill="#FFE566" stroke="#F0D000" stroke-width="4"/>
+  <!-- lines -->
+  <rect x="172" y="186" width="168" height="16" rx="8" fill="#FFE566"/>
+  <rect x="172" y="228" width="140" height="16" rx="8" fill="#FFF0A0"/>
+  <rect x="172" y="270" width="152" height="16" rx="8" fill="#FFF0A0"/>
+  <rect x="172" y="312" width="120" height="16" rx="8" fill="#FFF0A0"/>
+  <!-- checkmark circle -->
+  <circle cx="370" cy="370" r="72" fill="#7C9E87"/>
+  <polyline points="338,370 358,392 404,346" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
