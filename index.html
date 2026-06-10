@@ -11,6 +11,7 @@
   <meta name="theme-color" content="#FFE566" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon.svg" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
@@ -471,12 +472,32 @@ function handlePanelClick(e) {
   if (e.target === document.getElementById('themePanel')) closeTheme();
 }
 
+// ── Supabase ──────────────────────────────────────────────
+const _SB = supabase.createClient(
+  'https://stbhvcfubdhzwbdzeyvu.supabase.co',
+  'sb_publishable_1IUbpDSIlM_YRiEkmcXhhQ_fC792Aqn'
+);
+
 // ── 데이터 ───────────────────────────────────────────────
-let items = JSON.parse(localStorage.getItem('myListsApp') || '[]');
+let items = [];
 let currentCat = 'shop';
 let currentFilter = 'active';
 
-function save() { localStorage.setItem('myListsApp', JSON.stringify(items)); }
+async function loadItems() {
+  const { data } = await _SB.from('todos').select('*').order('id', { ascending: false });
+  items = data || [];
+  render();
+}
+
+async function dbAdd(item) {
+  await _SB.from('todos').insert(item);
+}
+async function dbUpdate(id, changes) {
+  await _SB.from('todos').update(changes).eq('id', id);
+}
+async function dbDelete(id) {
+  await _SB.from('todos').delete().eq('id', id);
+}
 
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function formatDate(str) {
@@ -615,11 +636,11 @@ function renderList() {
 }
 
 // ── 액션 ─────────────────────────────────────────────────
-function addItem() {
+async function addItem() {
   const textEl = document.getElementById('newText');
   const text = textEl?.value.trim();
   if (!text) { textEl?.focus(); return; }
-  items.unshift({
+  const item = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
     cat: currentCat, text,
     due:       document.getElementById('dueDate')?.value || '',
@@ -627,27 +648,40 @@ function addItem() {
     priority:  document.getElementById('priority')?.value || null,
     mediaType: document.getElementById('mediaType')?.value || null,
     done: false, created: todayStr(),
-  });
-  save(); render();
+  };
+  items.unshift(item);
+  render();
+  await dbAdd(item);
 }
-function toggleDone(id) { const i=items.find(i=>i.id===id); if(i){i.done=!i.done;save();render();} }
-function deleteItem(id) {
+async function toggleDone(id) {
+  const i = items.find(i=>i.id===id);
+  if (i) { i.done=!i.done; render(); await dbUpdate(id, {done: i.done}); }
+}
+async function deleteItem(id) {
   const item = items.find(i=>i.id===id); if(!item) return;
   const label = item.text.length>20 ? item.text.slice(0,20)+'…' : item.text;
   if(!confirm(`"${label}" 을(를) 삭제할까요?`)) return;
-  items = items.filter(i=>i.id!==id); save(); render();
+  items = items.filter(i=>i.id!==id); render();
+  await dbDelete(id);
 }
 function switchCat(cat) { currentCat=cat; currentFilter='active'; render(); }
 function setFilter(f) { currentFilter=f; render(); }
 function openDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='flex'; document.getElementById(`due-input-${id}`)?.focus(); }
 function closeDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='none'; }
-function saveDue(id) { const i=items.find(i=>i.id===id); if(i){i.due=document.getElementById(`due-input-${id}`)?.value||'';save();render();} }
-function clearDue(id) { const i=items.find(i=>i.id===id); if(i){i.due='';save();render();} }
+async function saveDue(id) {
+  const i = items.find(i=>i.id===id);
+  if (i) { i.due=document.getElementById(`due-input-${id}`)?.value||''; render(); await dbUpdate(id, {due: i.due}); }
+}
+async function clearDue(id) {
+  const i = items.find(i=>i.id===id);
+  if (i) { i.due=''; render(); await dbUpdate(id, {due: ''}); }
+}
 function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── 초기화 ────────────────────────────────────────────────
 applyTheme(currentTheme);
 render();
+loadItems();
 
 // ── PWA 서비스 워커 등록 ──────────────────────────────────
 if ('serviceWorker' in navigator) {
