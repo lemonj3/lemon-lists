@@ -441,6 +441,8 @@ function applyTheme(key) {
   document.documentElement.setAttribute('data-theme', key);
   currentTheme = key;
   localStorage.setItem('myListsTheme', key);
+  const t = THEMES.find(t => t.key === key);
+  if (t) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.swatch);
 }
 
 function openTheme() {
