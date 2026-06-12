@@ -571,7 +571,7 @@ function renderStats() {
 function renderForm() {
   const cat = currentCat;
   let extra = '';
-  if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px"/>`;
+  if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px" onkeydown="if(event.key==='Enter')addItem()"/>`;
   if (cat==='work') extra = `<select id="priority"><option value="">우선순위</option><option value="high">🔴 높음</option><option value="medium">🟡 보통</option><option value="low">🟢 낮음</option></select>`;
   if (cat==='media') extra = `<select id="mediaType"><option value="movie">🎬 영화</option><option value="drama">📺 드라마</option><option value="book">📚 책</option></select>`;
   document.getElementById('addForm').innerHTML = `
@@ -621,7 +621,13 @@ function renderList() {
       <div class="item-card${item.done?' done':''}${over?' overdue':''}">
         <button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>
         <div class="item-body">
-          <div class="item-text${item.done?' done-text':''}">${escHtml(item.text)}</div>
+          <div class="item-text${item.done?' done-text':''}" onclick="startEditText('${item.id}')" title="클릭하여 수정">${escHtml(item.text)}</div>
+          <div class="text-edit-row" id="text-edit-${item.id}" style="display:none">
+            <input type="text" id="text-input-${item.id}" value="${escHtml(item.text)}"
+              onkeydown="if(event.key==='Enter')saveText('${item.id}');if(event.key==='Escape')closeTextEdit('${item.id}')" />
+            <button class="due-save-btn" onclick="saveText('${item.id}')">저장</button>
+            <button class="due-cancel-btn" onclick="closeTextEdit('${item.id}')">취소</button>
+          </div>
           <div class="item-meta">${chips}</div>
           <div class="due-edit-row" id="due-edit-${item.id}" style="display:none">
             <input type="date" id="due-input-${item.id}" value="${item.due||''}" />
@@ -675,6 +681,23 @@ async function saveDue(id) {
 async function clearDue(id) {
   const i = items.find(i=>i.id===id);
   if (i) { i.due=''; render(); await dbUpdate(id, {due: ''}); }
+}
+function startEditText(id) {
+  const el = document.getElementById(`text-edit-${id}`);
+  const textEl = document.getElementById(`text-input-${id}`);
+  if (!el) return;
+  el.style.display='flex';
+  textEl?.focus(); textEl?.select();
+}
+function closeTextEdit(id) {
+  const el = document.getElementById(`text-edit-${id}`);
+  if (el) el.style.display='none';
+}
+async function saveText(id) {
+  const i = items.find(i=>i.id===id);
+  const val = document.getElementById(`text-input-${id}`)?.value.trim();
+  if (i && val) { i.text=val; render(); await dbUpdate(id, {text: val}); }
+  else closeTextEdit(id);
 }
 function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
