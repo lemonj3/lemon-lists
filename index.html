@@ -680,9 +680,13 @@ function renderForm() {
         onkeydown="if(event.key==='Enter')addItem()" />
       ${extra}
     </div>
+    <div class="row" id="dueDateRow" style="display:none">
+      <input type="date" id="dueDate" style="flex:1" />
+      <button class="due-cancel-btn" onclick="hideDueDate()">취소</button>
+    </div>
     <div class="row">
-      ${cat!=='shop'?`<input type="date" id="dueDate" />`:''}
-      <button class="add-btn" onclick="addItem()">+ 추가</button>
+      ${cat!=='shop'?`<button class="due-chip-btn no-due" onclick="showDueDate()" id="addDueBtn" style="align-self:center">+ 기한</button>`:''}
+      <button class="add-btn" onclick="addItem()" style="flex:1">+ 추가</button>
     </div>`;
   if (autoFocusForm) { setTimeout(() => document.getElementById('newText')?.focus(), 50); autoFocusForm = false; }
 }
@@ -780,6 +784,17 @@ async function deleteItem(id) {
   if(!confirm(`"${label}" 을(를) 삭제할까요?`)) return;
   items = items.filter(i=>i.id!==id); render();
   await dbDelete(id);
+}
+function showDueDate() {
+  document.getElementById('dueDateRow').style.display='flex';
+  document.getElementById('addDueBtn').style.display='none';
+  document.getElementById('dueDate')?.focus();
+}
+function hideDueDate() {
+  document.getElementById('dueDateRow').style.display='none';
+  document.getElementById('addDueBtn').style.display='';
+  const d = document.getElementById('dueDate');
+  if (d) d.value = '';
 }
 function switchCat(cat) { currentCat=cat; currentFilter='active'; autoFocusForm=true; render(); }
 function setFilter(f) { currentFilter=f; render(); }
