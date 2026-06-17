@@ -277,44 +277,46 @@
     .stat-pill.overdue-pill.active .stat-lbl { color: #fff; }
 
     /* ── 선택 삭제 ── */
-    .list-toolbar {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px; min-height: 28px;
-    }
-    .select-mode-btn {
-      font-size: .74rem; font-weight: 700; color: var(--muted);
-      background: none; border: 1.5px solid var(--border); border-radius: 20px;
-      padding: 3px 12px; cursor: pointer; font-family: inherit; transition: all .15s;
-    }
-    .select-mode-btn:hover { border-color: var(--t3); color: var(--text); }
-    .select-actions {
-      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
-    }
-    .sel-all-btn {
-      font-size: .74rem; font-weight: 700; color: var(--text);
-      background: var(--t1); border: 1.5px solid var(--t2); border-radius: 20px;
-      padding: 3px 12px; cursor: pointer; font-family: inherit;
-    }
-    .sel-delete-btn {
-      font-size: .74rem; font-weight: 700; color: var(--danger);
-      background: none; border: 1.5px solid var(--danger); border-radius: 20px;
-      padding: 3px 12px; cursor: pointer; font-family: inherit; transition: all .15s;
-    }
-    .sel-delete-btn:hover { background: var(--danger); color: #fff; }
-    .sel-cancel-btn {
-      font-size: .74rem; color: var(--muted); background: none;
-      border: none; cursor: pointer; font-family: inherit; text-decoration: underline;
-    }
-    .item-card.selectable { cursor: pointer; }
+    .list-toolbar { min-height: 0; margin-bottom: 0; }
+    .item-card.selectable { cursor: pointer; user-select: none; }
     .item-card.sel-selected { border-color: var(--t3); background: var(--t1); }
     .item-select-check {
-      width: 20px; height: 20px; border-radius: 50%;
+      width: 22px; height: 22px; border-radius: 50%;
       border: 2px solid var(--border); background: var(--surface);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; transition: all .15s; margin-right: 4px;
+      font-size: .82rem; font-weight: 700;
     }
     .item-card.sel-selected .item-select-check {
       background: var(--t3); border-color: var(--t3); color: var(--t-txt);
+    }
+    /* 하단 선택 액션바 */
+    .sel-action-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 560px;
+      background: var(--surface); border-top: 1.5px solid var(--border);
+      padding: 12px 20px 20px; display: flex; gap: 8px; align-items: center;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.08); z-index: 100;
+    }
+    .sel-all-btn {
+      flex: 1; padding: 10px; font-size: .85rem; font-weight: 700;
+      background: var(--t1); border: 1.5px solid var(--t2); border-radius: 12px;
+      cursor: pointer; font-family: 'Gaegu', cursive; color: var(--text);
+    }
+    .sel-delete-btn {
+      flex: 1; padding: 10px; font-size: .85rem; font-weight: 700;
+      background: none; border: 1.5px solid var(--danger); border-radius: 12px;
+      color: var(--danger); cursor: pointer; font-family: 'Gaegu', cursive; transition: all .15s;
+    }
+    .sel-delete-btn:hover { background: var(--danger); color: #fff; }
+    .sel-delete-btn:disabled { opacity: .4; pointer-events: none; }
+    .sel-cancel-btn {
+      padding: 10px 14px; font-size: .85rem; color: var(--muted);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+    }
+    .sel-hint {
+      text-align: center; font-size: .72rem; color: var(--muted);
+      padding: 6px 0 0; letter-spacing: .3px;
     }
 
     /* ── Add Form ── */
@@ -587,25 +589,47 @@ function render() {
   renderToolbar();
   renderList();
   lucide.createIcons();
+  attachLongPress();
+}
+
+function attachLongPress() {
+  if (selectMode) return;
+  document.querySelectorAll('.item-card[data-id]').forEach(card => {
+    let timer = null;
+    const start = (e) => {
+      if (e.target.closest('button')) return;
+      timer = setTimeout(() => {
+        const id = card.dataset.id;
+        enterSelectMode();
+        toggleSelect(id);
+      }, 500);
+    };
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    card.addEventListener('mousedown', start);
+    card.addEventListener('mouseup', cancel);
+    card.addEventListener('mouseleave', cancel);
+    card.addEventListener('touchstart', start, {passive: true});
+    card.addEventListener('touchend', cancel);
+    card.addEventListener('touchmove', cancel);
+  });
 }
 
 function renderToolbar() {
-  const catItems = items.filter(i => i.cat === currentCat);
-  const toolbar = document.getElementById('listToolbar');
-  if (!catItems.length) { toolbar.innerHTML = ''; return; }
-  if (selectMode) {
-    const n = selectedIds.size;
-    const allVisible = getFiltered().map(i => i.id);
-    const allSelected = allVisible.length > 0 && allVisible.every(id => selectedIds.has(id));
-    toolbar.innerHTML = `
-      <div class="select-actions">
-        <button class="sel-all-btn" onclick="toggleSelectAll()">${allSelected ? '선택 해제' : '전체 선택'}</button>
-        ${n > 0 ? `<button class="sel-delete-btn" onclick="deleteSelected()">삭제 (${n}개)</button>` : ''}
-        <button class="sel-cancel-btn" onclick="exitSelectMode()">취소</button>
-      </div>`;
-  } else {
-    toolbar.innerHTML = `<button class="select-mode-btn" onclick="enterSelectMode()">☑ 선택 삭제</button>`;
-  }
+  document.getElementById('listToolbar').innerHTML = '';
+  const existing = document.getElementById('selActionBar');
+  if (existing) existing.remove();
+  if (!selectMode) return;
+  const n = selectedIds.size;
+  const allVisible = getFiltered().map(i => i.id);
+  const allSelected = allVisible.length > 0 && allVisible.every(id => selectedIds.has(id));
+  const bar = document.createElement('div');
+  bar.id = 'selActionBar';
+  bar.className = 'sel-action-bar';
+  bar.innerHTML = `
+    <button class="sel-cancel-btn" onclick="exitSelectMode()">취소</button>
+    <button class="sel-all-btn" onclick="toggleSelectAll()">${allSelected ? '전체 해제' : '전체 선택'}</button>
+    <button class="sel-delete-btn" onclick="deleteSelected()" ${n===0?'disabled':''}>삭제 ${n>0?`(${n}개)`:''}</button>`;
+  document.body.appendChild(bar);
 }
 
 function renderTodayBadge() {
@@ -699,6 +723,7 @@ function renderList() {
     const isSel = selectedIds.has(item.id);
     return `
       <div class="item-card${item.done?' done':''}${over?' overdue':''}${selectMode?' selectable':''}${isSel?' sel-selected':''}"
+        data-id="${item.id}"
         ${selectMode?`onclick="toggleSelect('${item.id}')"`:''}>
         ${selectMode
           ? `<div class="item-select-check">${isSel?'✓':''}</div>`
