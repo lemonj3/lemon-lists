@@ -227,52 +227,95 @@
 
     /* ── Category Tabs ── */
     .tabs {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 8px; margin-bottom: 20px;
+      display: flex; flex-wrap: nowrap; overflow-x: auto;
+      gap: 8px; margin-bottom: 16px;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-bottom: 4px;
     }
+    .tabs::-webkit-scrollbar { display: none; }
     .tab {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 12px 4px;
-      border: 2px solid var(--border); border-radius: 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 10px 14px; flex-shrink: 0;
+      border: 2px solid var(--border); border-radius: 16px;
       cursor: pointer; background: var(--surface);
       box-shadow: var(--shadow); transition: all .18s;
-      font-size: .82rem; font-weight: 700; color: var(--muted);
+      font-size: .78rem; font-weight: 700; color: var(--muted);
       font-family: 'Gaegu', cursive;
-      position: relative;
+      position: relative; min-width: 64px;
     }
-    .tab svg { width: 22px; height: 22px; stroke: var(--muted); transition: stroke .18s; }
+    .tab svg { width: 18px; height: 18px; stroke: var(--muted); transition: stroke .18s; }
     .tab.active { border-color: var(--t3); background: var(--t3); color: var(--t-txt); }
     .tab.active svg { stroke: var(--t-txt); }
     .tab:not(.active):hover { border-color: var(--t2); background: var(--t1); color: var(--t-txt); }
     .tab:not(.active):hover svg { stroke: var(--t-txt); }
     .tab .badge {
-      position: absolute; top: 6px; right: 8px;
+      position: absolute; top: 4px; right: 6px;
       background: var(--danger); color: #fff;
       font-size: .6rem; font-weight: 700;
-      min-width: 16px; height: 16px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; padding: 0 4px;
+      min-width: 14px; height: 14px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; padding: 0 3px;
     }
 
     /* ── Stats Pills ── */
-    .stats { display: flex; gap: 8px; margin-bottom: 20px; }
+    .stats { display: flex; gap: 6px; margin-bottom: 14px; align-items: center; }
     .stat-pill {
       flex: 1; min-width: 0;
       background: var(--surface); border: 1.5px solid var(--border);
-      border-radius: 16px; padding: 10px 8px;
-      box-shadow: var(--shadow); text-align: center;
-      cursor: pointer; transition: all .18s; user-select: none;
+      border-radius: 12px; padding: 6px 6px;
+      text-align: center; cursor: pointer; transition: all .18s; user-select: none;
     }
     .stat-pill:hover { border-color: var(--t2); background: var(--t1); }
     .stat-pill.active { background: var(--t2); border-color: var(--t3); }
     .stat-pill.active .stat-num,
     .stat-pill.active .stat-lbl { color: var(--t-txt); }
-    .stat-num { font-size: 1.4rem; font-weight: 800; color: var(--text); font-family: 'Gaegu', cursive; }
-    .stat-lbl { font-size: .78rem; color: var(--muted); font-weight: 700; margin-top: 2px; font-family: 'Gaegu', cursive; }
+    .stat-num { font-size: 1.1rem; font-weight: 800; color: var(--text); font-family: 'Gaegu', cursive; }
+    .stat-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; font-family: 'Gaegu', cursive; }
     .stat-pill.overdue-pill { background: #fdf0ea; }
     .stat-pill.overdue-pill .stat-num { color: var(--danger); }
     .stat-pill.overdue-pill.active { background: var(--danger); border-color: #9a6050; }
     .stat-pill.overdue-pill.active .stat-num,
     .stat-pill.overdue-pill.active .stat-lbl { color: #fff; }
+
+    /* ── 선택 삭제 ── */
+    .list-toolbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; min-height: 28px;
+    }
+    .select-mode-btn {
+      font-size: .74rem; font-weight: 700; color: var(--muted);
+      background: none; border: 1.5px solid var(--border); border-radius: 20px;
+      padding: 3px 12px; cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .select-mode-btn:hover { border-color: var(--t3); color: var(--text); }
+    .select-actions {
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+    .sel-all-btn {
+      font-size: .74rem; font-weight: 700; color: var(--text);
+      background: var(--t1); border: 1.5px solid var(--t2); border-radius: 20px;
+      padding: 3px 12px; cursor: pointer; font-family: inherit;
+    }
+    .sel-delete-btn {
+      font-size: .74rem; font-weight: 700; color: var(--danger);
+      background: none; border: 1.5px solid var(--danger); border-radius: 20px;
+      padding: 3px 12px; cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .sel-delete-btn:hover { background: var(--danger); color: #fff; }
+    .sel-cancel-btn {
+      font-size: .74rem; color: var(--muted); background: none;
+      border: none; cursor: pointer; font-family: inherit; text-decoration: underline;
+    }
+    .item-card.selectable { cursor: pointer; }
+    .item-card.sel-selected { border-color: var(--t3); background: var(--t1); }
+    .item-select-check {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--border); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .15s; margin-right: 4px;
+    }
+    .item-card.sel-selected .item-select-check {
+      background: var(--t3); border-color: var(--t3); color: var(--t-txt);
+    }
 
     /* ── Add Form ── */
     .add-form {
@@ -417,6 +460,7 @@
 
   <div class="stats" id="stats"></div>
   <div class="add-form" id="addForm"></div>
+  <div class="list-toolbar" id="listToolbar"></div>
   <div class="items-list" id="itemsList"></div>
 </div>
 
@@ -490,6 +534,8 @@ const _SB = supabase.createClient(
 let items = [];
 let currentCat = 'shop';
 let currentFilter = 'active';
+let selectMode = false;
+let selectedIds = new Set();
 
 async function loadItems() {
   const { data } = await _SB.from('todos').select('*').order('id', { ascending: false });
@@ -538,8 +584,28 @@ function render() {
   renderTabs();
   renderStats();
   renderForm();
+  renderToolbar();
   renderList();
   lucide.createIcons();
+}
+
+function renderToolbar() {
+  const catItems = items.filter(i => i.cat === currentCat);
+  const toolbar = document.getElementById('listToolbar');
+  if (!catItems.length) { toolbar.innerHTML = ''; return; }
+  if (selectMode) {
+    const n = selectedIds.size;
+    const allVisible = getFiltered().map(i => i.id);
+    const allSelected = allVisible.length > 0 && allVisible.every(id => selectedIds.has(id));
+    toolbar.innerHTML = `
+      <div class="select-actions">
+        <button class="sel-all-btn" onclick="toggleSelectAll()">${allSelected ? '선택 해제' : '전체 선택'}</button>
+        ${n > 0 ? `<button class="sel-delete-btn" onclick="deleteSelected()">삭제 (${n}개)</button>` : ''}
+        <button class="sel-cancel-btn" onclick="exitSelectMode()">취소</button>
+      </div>`;
+  } else {
+    toolbar.innerHTML = `<button class="select-mode-btn" onclick="enterSelectMode()">☑ 선택 삭제</button>`;
+  }
 }
 
 function renderTodayBadge() {
@@ -569,14 +635,11 @@ function renderStats() {
     { key: 'done',   num: done,   lbl: '완료',   cls: '' },
   ];
   if (overdue > 0) pills.push({ key: 'overdue', num: overdue, lbl: '⚠️ 기한초과', cls: 'overdue-pill' });
-  const bulkBtn = done > 0
-    ? `<button class="bulk-delete-btn" onclick="bulkDeleteDone()">완료 ${done}개 삭제</button>`
-    : '';
   document.getElementById('stats').innerHTML = pills.map(p => `
     <div class="stat-pill ${p.cls}${currentFilter===p.key?' active':''}" onclick="setFilter('${p.key}')">
       <div class="stat-num">${p.num}</div>
       <div class="stat-lbl">${p.lbl}</div>
-    </div>`).join('') + bulkBtn;
+    </div>`).join('');
 }
 
 function renderForm() {
@@ -599,7 +662,7 @@ function renderForm() {
   setTimeout(() => document.getElementById('newText')?.focus(), 50);
 }
 
-function renderList() {
+function getFiltered() {
   let filtered = items.filter(i => i.cat === currentCat);
   if (currentFilter==='active')  filtered = filtered.filter(i => !i.done);
   if (currentFilter==='done')    filtered = filtered.filter(i => i.done);
@@ -610,6 +673,11 @@ function renderList() {
     if (da !== db) return da - db;
     return new Date(b.created) - new Date(a.created);
   });
+  return filtered;
+}
+
+function renderList() {
+  let filtered = getFiltered();
   const container = document.getElementById('itemsList');
   if (!filtered.length) {
     const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
@@ -628,11 +696,15 @@ function renderList() {
     if (item.qty)        chips += `<span class="qty-badge">수량 ${item.qty}개</span>`;
     if (item.priority)   chips += `<span class="sub-chip priority-${item.priority}">${{high:'🔴 높음',medium:'🟡 보통',low:'🟢 낮음'}[item.priority]}</span>`;
     if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 드라마/영화',show:'🎭 공연',exhibit:'🖼️ 전시',book:'📚 책',drama:'🎬 드라마/영화'}[item.mediaType]||item.mediaType}</span>`;
+    const isSel = selectedIds.has(item.id);
     return `
-      <div class="item-card${item.done?' done':''}${over?' overdue':''}">
-        <button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>
+      <div class="item-card${item.done?' done':''}${over?' overdue':''}${selectMode?' selectable':''}${isSel?' sel-selected':''}"
+        ${selectMode?`onclick="toggleSelect('${item.id}')"`:''}>
+        ${selectMode
+          ? `<div class="item-select-check">${isSel?'✓':''}</div>`
+          : `<button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>`}
         <div class="item-body">
-          <div class="item-text${item.done?' done-text':''}" onclick="startEditText('${item.id}')" title="클릭하여 수정">${escHtml(item.text)}</div>
+          <div class="item-text${item.done?' done-text':''}" ${selectMode?'':`onclick="startEditText('${item.id}')" title="클릭하여 수정"`}>${escHtml(item.text)}</div>
           <div class="text-edit-row" id="text-edit-${item.id}" style="display:none">
             <input type="text" id="text-input-${item.id}" value="${escHtml(item.text)}"
               onkeydown="if(event.key==='Enter')saveText('${item.id}');if(event.key==='Escape')closeTextEdit('${item.id}')" />
@@ -647,7 +719,7 @@ function renderList() {
             <button class="due-cancel-btn" onclick="closeDueEdit('${item.id}')">취소</button>
           </div>
         </div>
-        <button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>
+        ${selectMode ? '' : `<button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>`}
       </div>`;
   }).join('');
 }
@@ -704,6 +776,32 @@ function closeTextEdit(id) {
   const el = document.getElementById(`text-edit-${id}`);
   if (el) el.style.display='none';
 }
+function enterSelectMode() { selectMode=true; selectedIds.clear(); render(); }
+function exitSelectMode() { selectMode=false; selectedIds.clear(); render(); }
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+  renderToolbar();
+  document.querySelectorAll('.item-card.selectable').forEach(el => {
+    const elId = el.querySelector('.item-select-check') ? el.getAttribute('onclick')?.match(/'([^']+)'/)?.[1] : null;
+  });
+  renderList(); lucide.createIcons();
+}
+function toggleSelectAll() {
+  const visible = getFiltered().map(i => i.id);
+  const allSel = visible.every(id => selectedIds.has(id));
+  if (allSel) visible.forEach(id => selectedIds.delete(id));
+  else visible.forEach(id => selectedIds.add(id));
+  renderToolbar(); renderList(); lucide.createIcons();
+}
+async function deleteSelected() {
+  if (!selectedIds.size) return;
+  if (!confirm(`선택한 ${selectedIds.size}개를 삭제할까요?`)) return;
+  const ids = [...selectedIds];
+  items = items.filter(i => !selectedIds.has(i.id));
+  exitSelectMode();
+  await Promise.all(ids.map(id => dbDelete(id)));
+}
+
 async function bulkDeleteDone() {
   const doneItems = items.filter(i => i.cat === currentCat && i.done);
   if (!doneItems.length) return;
