@@ -371,6 +371,8 @@
       font-size: .78rem; color: var(--text); background: var(--surface);
       outline: none; font-family: inherit;
     }
+    .bulk-delete-btn { margin-top: 8px; padding: 6px 16px; background: none; border: 1.5px solid var(--danger); color: var(--danger); border-radius: 20px; font-size: .78rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .15s; }
+    .bulk-delete-btn:hover { background: var(--danger); color: #fff; }
     .due-save-btn   { padding: 4px 10px; background: var(--t2); color: var(--t-txt); border: 1px solid var(--t3); border-radius: 8px; font-size: .75rem; font-weight: 700; cursor: pointer; }
     .due-clear-btn  { padding: 4px 8px; background: none; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; font-size: .75rem; cursor: pointer; }
     .due-cancel-btn { padding: 4px 8px; background: none; color: var(--muted); border: none; font-size: .75rem; cursor: pointer; text-decoration: underline; }
@@ -383,7 +385,7 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>My <span>Lists</span> 🍋</h1>
+    <h1>Lemon <span>Lists</span> 🍋</h1>
     <div class="today-badge" id="todayBadge"></div>
     <button class="theme-btn" onclick="openTheme()">
       <i data-lucide="palette"></i> 테마
@@ -395,17 +397,21 @@
       <i data-lucide="shopping-cart"></i><span>쇼핑</span>
       <span class="badge" id="badge-shop" style="display:none"></span>
     </div>
-    <div class="tab" data-cat="personal" onclick="switchCat('personal')">
-      <i data-lucide="house"></i><span>개인</span>
-      <span class="badge" id="badge-personal" style="display:none"></span>
+    <div class="tab" data-cat="life" onclick="switchCat('life')">
+      <i data-lucide="leaf"></i><span>라이프</span>
+      <span class="badge" id="badge-life" style="display:none"></span>
     </div>
     <div class="tab" data-cat="work" onclick="switchCat('work')">
-      <i data-lucide="monitor"></i><span>업무</span>
+      <i data-lucide="briefcase"></i><span>업무</span>
       <span class="badge" id="badge-work" style="display:none"></span>
     </div>
     <div class="tab" data-cat="media" onclick="switchCat('media')">
       <i data-lucide="clapperboard"></i><span>보고싶은것</span>
       <span class="badge" id="badge-media" style="display:none"></span>
+    </div>
+    <div class="tab" data-cat="place" onclick="switchCat('place')">
+      <i data-lucide="map-pin"></i><span>가고싶은곳</span>
+      <span class="badge" id="badge-place" style="display:none"></span>
     </div>
   </div>
 
@@ -563,11 +569,14 @@ function renderStats() {
     { key: 'done',   num: done,   lbl: '완료',   cls: '' },
   ];
   if (overdue > 0) pills.push({ key: 'overdue', num: overdue, lbl: '⚠️ 기한초과', cls: 'overdue-pill' });
+  const bulkBtn = done > 0
+    ? `<button class="bulk-delete-btn" onclick="bulkDeleteDone()">완료 ${done}개 삭제</button>`
+    : '';
   document.getElementById('stats').innerHTML = pills.map(p => `
     <div class="stat-pill ${p.cls}${currentFilter===p.key?' active':''}" onclick="setFilter('${p.key}')">
       <div class="stat-num">${p.num}</div>
       <div class="stat-lbl">${p.lbl}</div>
-    </div>`).join('');
+    </div>`).join('') + bulkBtn;
 }
 
 function renderForm() {
@@ -575,11 +584,11 @@ function renderForm() {
   let extra = '';
   if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px" onkeydown="if(event.key==='Enter')addItem()"/>`;
   if (cat==='work') extra = `<select id="priority"><option value="">우선순위</option><option value="high">🔴 높음</option><option value="medium">🟡 보통</option><option value="low">🟢 낮음</option></select>`;
-  if (cat==='media') extra = `<select id="mediaType"><option value="movie">🎬 영화</option><option value="drama">📺 드라마</option><option value="book">📚 책</option></select>`;
+  if (cat==='media') extra = `<select id="mediaType"><option value="book">📚 책</option><option value="movie">🎬 드라마/영화</option><option value="show">🎭 공연</option><option value="exhibit">🖼️ 전시</option></select>`;
   document.getElementById('addForm').innerHTML = `
     <div class="row">
       <input type="text" id="newText"
-        placeholder="${cat==='shop'?'살 것 추가...':cat==='media'?'제목 추가...':'할 일 추가...'}"
+        placeholder="${{shop:'살 것 추가...',life:'할 일 추가...',work:'업무 추가...',media:'제목 추가...',place:'장소 추가...'}[cat]||'추가...'}"
         onkeydown="if(event.key==='Enter')addItem()" />
       ${extra}
     </div>
@@ -618,7 +627,7 @@ function renderList() {
     if (dd && !item.done) chips += `<span class="dday-chip ${dd.cls}">${dd.text}</span>`;
     if (item.qty)        chips += `<span class="qty-badge">수량 ${item.qty}개</span>`;
     if (item.priority)   chips += `<span class="sub-chip priority-${item.priority}">${{high:'🔴 높음',medium:'🟡 보통',low:'🟢 낮음'}[item.priority]}</span>`;
-    if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 영화',drama:'📺 드라마',book:'📚 책'}[item.mediaType]}</span>`;
+    if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 드라마/영화',show:'🎭 공연',exhibit:'🖼️ 전시',book:'📚 책',drama:'🎬 드라마/영화'}[item.mediaType]||item.mediaType}</span>`;
     return `
       <div class="item-card${item.done?' done':''}${over?' overdue':''}">
         <button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>
@@ -695,6 +704,16 @@ function closeTextEdit(id) {
   const el = document.getElementById(`text-edit-${id}`);
   if (el) el.style.display='none';
 }
+async function bulkDeleteDone() {
+  const doneItems = items.filter(i => i.cat === currentCat && i.done);
+  if (!doneItems.length) return;
+  if (!confirm(`완료된 항목 ${doneItems.length}개를 모두 삭제할까요?`)) return;
+  const ids = doneItems.map(i => i.id);
+  items = items.filter(i => !(i.cat === currentCat && i.done));
+  render();
+  await Promise.all(ids.map(id => dbDelete(id)));
+}
+
 async function saveText(id) {
   const i = items.find(i=>i.id===id);
   const val = document.getElementById(`text-input-${id}`)?.value.trim();
