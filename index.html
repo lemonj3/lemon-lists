@@ -538,6 +538,7 @@ let currentCat = 'shop';
 let currentFilter = 'active';
 let selectMode = false;
 let selectedIds = new Set();
+let autoFocusForm = false;
 
 async function loadItems() {
   const { data } = await _SB.from('todos').select('*').order('id', { ascending: false });
@@ -683,7 +684,7 @@ function renderForm() {
       ${cat!=='shop'?`<input type="date" id="dueDate" />`:''}
       <button class="add-btn" onclick="addItem()">+ 추가</button>
     </div>`;
-  setTimeout(() => document.getElementById('newText')?.focus(), 50);
+  if (autoFocusForm) { setTimeout(() => document.getElementById('newText')?.focus(), 50); autoFocusForm = false; }
 }
 
 function getFiltered() {
@@ -764,6 +765,8 @@ async function addItem() {
     done: false, created: todayStr(),
   };
   items.unshift(item);
+  currentFilter = 'active';
+  if (currentCat !== item.cat) currentCat = item.cat;
   render();
   await dbAdd(item);
 }
@@ -778,7 +781,7 @@ async function deleteItem(id) {
   items = items.filter(i=>i.id!==id); render();
   await dbDelete(id);
 }
-function switchCat(cat) { currentCat=cat; currentFilter='active'; render(); }
+function switchCat(cat) { currentCat=cat; currentFilter='active'; autoFocusForm=true; render(); }
 function setFilter(f) { currentFilter=f; render(); }
 function openDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='flex'; document.getElementById(`due-input-${id}`)?.focus(); }
 function closeDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='none'; }
