@@ -318,6 +318,23 @@
       text-align: center; font-size: .72rem; color: var(--muted);
       padding: 6px 0 0; letter-spacing: .3px;
     }
+    .move-panel {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 560px; z-index: 200;
+      background: var(--surface); border-top: 1.5px solid var(--border);
+      padding: 16px 20px 24px; box-shadow: 0 -4px 20px rgba(0,0,0,.12);
+    }
+    .move-panel h4 { font-size: .85rem; color: var(--muted); margin-bottom: 12px; font-family: 'Gaegu', cursive; text-align: center; }
+    .move-cat-list { display: flex; flex-direction: column; gap: 8px; }
+    .move-cat-btn {
+      padding: 11px 16px; border-radius: 12px; border: 1.5px solid var(--border);
+      background: var(--t0); font-size: .9rem; font-weight: 700; cursor: pointer;
+      font-family: 'Gaegu', cursive; color: var(--text); text-align: left;
+      transition: all .15s; display: flex; align-items: center; gap: 10px;
+    }
+    .move-cat-btn:hover { background: var(--t2); border-color: var(--t3); }
+    .move-cat-btn.current { opacity: .35; pointer-events: none; }
+    .move-cancel { width: 100%; margin-top: 8px; padding: 10px; background: none; border: none; color: var(--muted); font-size: .85rem; cursor: pointer; font-family: inherit; }
 
     /* ── Add Form ── */
     .add-form {
@@ -629,6 +646,7 @@ function renderToolbar() {
   bar.innerHTML = `
     <button class="sel-cancel-btn" onclick="exitSelectMode()">취소</button>
     <button class="sel-all-btn" onclick="toggleSelectAll()">${allSelected ? '전체 해제' : '전체 선택'}</button>
+    <button class="sel-all-btn" onclick="openMovePanel()" ${n===0?'disabled':''} style="opacity:${n===0?.4:1}">이동 ${n>0?`(${n}개)`:''}</button>
     <button class="sel-delete-btn" onclick="deleteSelected()" ${n===0?'disabled':''}>삭제 ${n>0?`(${n}개)`:''}</button>`;
   document.body.appendChild(bar);
 }
@@ -819,8 +837,49 @@ function closeTextEdit(id) {
   const el = document.getElementById(`text-edit-${id}`);
   if (el) el.style.display='none';
 }
+const CATS = [
+  { key:'shop',  label:'쇼핑',     icon:'🛒' },
+  { key:'life',  label:'라이프',   icon:'🌿' },
+  { key:'work',  label:'업무',     icon:'💼' },
+  { key:'media', label:'보고싶은것', icon:'🎬' },
+  { key:'place', label:'가고싶은곳', icon:'🗺️' },
+];
+
 function enterSelectMode() { selectMode=true; selectedIds.clear(); render(); }
-function exitSelectMode() { selectMode=false; selectedIds.clear(); render(); }
+function exitSelectMode() {
+  selectMode=false; selectedIds.clear();
+  document.getElementById('movePanel')?.remove();
+  render();
+}
+
+function openMovePanel() {
+  document.getElementById('movePanel')?.remove();
+  const panel = document.createElement('div');
+  panel.id = 'movePanel';
+  panel.className = 'move-panel';
+  panel.innerHTML = `
+    <h4>${selectedIds.size}개 항목을 이동할 카테고리 선택</h4>
+    <div class="move-cat-list">
+      ${CATS.map(c => `
+        <button class="move-cat-btn${c.key===currentCat?' current':''}" onclick="moveSelected('${c.key}')">
+          ${c.icon} ${c.label}${c.key===currentCat?' (현재)':''}
+        </button>`).join('')}
+    </div>
+    <button class="move-cancel" onclick="document.getElementById('movePanel').remove()">취소</button>`;
+  document.body.appendChild(panel);
+}
+
+async function moveSelected(toCat) {
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  ids.forEach(id => {
+    const item = items.find(i => i.id === id);
+    if (item) item.cat = toCat;
+  });
+  document.getElementById('movePanel')?.remove();
+  exitSelectMode();
+  await Promise.all(ids.map(id => dbUpdate(id, { cat: toCat })));
+}
 function toggleSelect(id) {
   if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
   renderToolbar();
