@@ -1,4 +1,4 @@
-const CACHE = 'my-lists-v1';
+const CACHE = 'lemon-lists-v2';
 const ASSETS = [
   './',
   './index.html',
