@@ -1007,7 +1007,8 @@ function checkAuth() {
 }
 
 function showLockScreen() {
-  document.getElementById('app').style.display = 'none';
+  const appEl = document.getElementById('app') || document.querySelector('.app');
+  if (appEl) appEl.style.display = 'none';
   const lock = document.createElement('div');
   lock.id = 'lockScreen';
   lock.innerHTML = `
@@ -1030,48 +1031,8 @@ function tryUnlock() {
   if (val === LOCK_PW) {
     sessionStorage.setItem(LOCK_KEY, '1');
     document.getElementById('lockScreen')?.remove();
-    document.getElementById('app').style.display = '';
-    loadItems();
-  } else {
-    document.getElementById('pwError').style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
-  }
-}
-
-// ── 비밀번호 잠금 ─────────────────────────────────────────
-const LOCK_PW = 'YOUR_PASSWORD';
-const LOCK_KEY = 'll_auth';
-
-function checkAuth() {
-  return sessionStorage.getItem(LOCK_KEY) === '1';
-}
-
-function showLockScreen() {
-  document.getElementById('app').style.display = 'none';
-  const lock = document.createElement('div');
-  lock.id = 'lockScreen';
-  lock.innerHTML = `
-    <div class="lock-box">
-      <div class="lock-icon">🍋</div>
-      <h2>Lemon Lists</h2>
-      <input type="password" id="pwInput" placeholder="비밀번호 입력" autocomplete="current-password" />
-      <button onclick="tryUnlock()">확인</button>
-      <p id="pwError" style="color:#c06060;font-size:13px;margin-top:8px;display:none">비밀번호가 틀렸어요</p>
-    </div>`;
-  document.body.appendChild(lock);
-  setTimeout(() => document.getElementById('pwInput')?.focus(), 100);
-  document.getElementById('pwInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') tryUnlock();
-  });
-}
-
-function tryUnlock() {
-  const val = document.getElementById('pwInput')?.value;
-  if (val === LOCK_PW) {
-    sessionStorage.setItem(LOCK_KEY, '1');
-    document.getElementById('lockScreen')?.remove();
-    document.getElementById('app').style.display = '';
+    const appEl = document.getElementById('app') || document.querySelector('.app');
+    if (appEl) appEl.style.display = '';
     loadItems();
   } else {
     document.getElementById('pwError').style.display = 'block';
