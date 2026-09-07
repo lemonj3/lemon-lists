@@ -509,6 +509,28 @@
       cursor: pointer; font-family: inherit; transition: all .15s;
     }
     .pri-chip-btn:hover { border-color: var(--t3); }
+
+    /* ── 택배 ── */
+    .ship-check {
+      display: flex; align-items: center; gap: 4px; padding: 0 8px;
+      font-size: .8rem; color: var(--muted); cursor: pointer;
+      white-space: nowrap; user-select: none;
+    }
+    .ship-check input { cursor: pointer; accent-color: var(--t3); }
+    .ship-chip { background: var(--t1); color: var(--t-txt); }
+    .ship-chip-btn {
+      font-size: .7rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: var(--t1); color: var(--t-txt);
+      border: 1px solid var(--t3); cursor: pointer;
+      font-family: inherit; transition: all .15s;
+    }
+    .ship-chip-btn:hover { background: var(--t2); }
+    .ship-chip-btn.arrived { background: none; color: var(--muted); border-color: var(--border); }
+    .due-edit-row input[type="text"] {
+      padding: 4px 8px; border: 1.5px solid var(--t3); border-radius: 10px;
+      font-size: .78rem; color: var(--text); background: var(--surface);
+      outline: none; font-family: inherit; min-width: 100px; flex: 1;
+    }
     .due-edit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
     .due-edit-row input[type="date"] {
       padding: 4px 8px; border: 1.5px solid var(--t3); border-radius: 10px;
@@ -763,13 +785,15 @@ function renderTabs() {
 function renderStats() {
   const ci = items.filter(i => i.cat === currentCat);
   const done = ci.filter(i => i.done).length;
-  const active = ci.length - done;
+  const shipping = ci.filter(isShipping).length;
+  const active = ci.filter(i => !i.done && !isShipping(i)).length;
   const overdue = ci.filter(i => !i.done && i.due && dday(i.due) < 0).length;
   const pills = [
     { key: 'active', num: active, lbl: '진행 중', cls: '' },
     { key: 'all',    num: ci.length, lbl: '전체', cls: '' },
     { key: 'done',   num: done,   lbl: '완료',   cls: '' },
   ];
+  if (shipping > 0) pills.splice(1, 0, { key: 'shipping', num: shipping, lbl: '📦 배송중', cls: '' });
   if (overdue > 0) pills.push({ key: 'overdue', num: overdue, lbl: '⚠️ 기한초과', cls: 'overdue-pill' });
   document.getElementById('stats').innerHTML = pills.map(p => `
     <div class="stat-pill ${p.cls}${currentFilter===p.key?' active':''}" onclick="setFilter('${p.key}')">
@@ -781,7 +805,8 @@ function renderStats() {
 function renderForm() {
   const cat = currentCat;
   let extra = '';
-  if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px" onkeydown="if(event.key==='Enter')addItem()"/>`;
+  if (cat==='shop') extra = `<input type="number" id="qty" placeholder="수량" min="1" style="flex:.8;min-width:70px" onkeydown="if(event.key==='Enter')addItem()"/>`
+    + `<label class="ship-check"><input type="checkbox" id="ship" /> 📦 택배</label>`;
   if (cat==='work') extra = `<select id="priority"><option value="">우선순위</option><option value="high">🔴 높음</option><option value="medium">🟡 보통</option><option value="low">🟢 낮음</option></select>`;
   if (cat==='media') extra = `<select id="mediaType"><option value="book">📚 책</option><option value="movie">🎬 드라마/영화</option><option value="show">🎭 공연</option><option value="exhibit">🖼️ 전시</option></select>`;
   document.getElementById('addForm').innerHTML = `
@@ -804,8 +829,9 @@ function renderForm() {
 
 function getFiltered() {
   let filtered = items.filter(i => i.cat === currentCat);
-  if (currentFilter==='active')  filtered = filtered.filter(i => !i.done);
-  if (currentFilter==='done')    filtered = filtered.filter(i => i.done);
+  if (currentFilter==='active')   filtered = filtered.filter(i => !i.done && !isShipping(i));
+  if (currentFilter==='shipping') filtered = filtered.filter(i => isShipping(i));
+  if (currentFilter==='done')     filtered = filtered.filter(i => i.done);
   if (currentFilter==='overdue') filtered = filtered.filter(i => !i.done && i.due && dday(i.due) < 0);
   filtered.sort((a,b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
@@ -820,7 +846,7 @@ function renderList() {
   let filtered = getFiltered();
   const container = document.getElementById('itemsList');
   if (!filtered.length) {
-    const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
+    const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], shipping:['기다리는 택배가 없어요','택배 항목을 주문 완료하면 여기 모여요 📦'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
     const [t,s] = msgs[currentFilter]||msgs.all;
     container.innerHTML = `<div class="empty-state"><span class="e">🌸</span><strong>${t}</strong><br><span style="font-size:.82rem">${s}</span></div>`;
     return;
@@ -842,6 +868,14 @@ function renderList() {
       chips += `<span class="sub-chip priority-${item.priority}">${PRI_LABEL[item.priority]}</span>`;
     }
     if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 드라마/영화',show:'🎭 공연',exhibit:'🖼️ 전시',book:'📚 책',drama:'🎬 드라마/영화'}[item.mediaType]||item.mediaType}</span>`;
+    if (item.ship) {
+      if (!item.ordered) {
+        chips += `<span class="sub-chip ship-chip">📦 택배</span>`;
+      } else {
+        const mall = item.mall ? escHtml(item.mall) + ' · ' : '';
+        chips += `<button class="ship-chip-btn${item.done?' arrived':''}" onclick="openShipEdit('${item.id}')">${item.done?'📦 도착':'📦 배송중'} · ${mall}${formatDate(item.ordered)} 주문</button>`;
+      }
+    }
     const isSel = selectedIds.has(item.id);
     return `
       <div class="item-card${item.done?' done':''}${over?' overdue':''}${selectMode?' selectable':''}${isSel?' sel-selected':''}"
@@ -872,6 +906,13 @@ function renderList() {
             <button class="due-clear-btn" onclick="setPri('${item.id}','')">없음</button>
             <button class="due-cancel-btn" onclick="closePriEdit('${item.id}')">취소</button>
           </div>
+          <div class="due-edit-row" id="ship-edit-${item.id}" style="display:none">
+            <input type="text" id="mall-input-${item.id}" value="${escHtml(item.mall||'')}" placeholder="쇼핑몰명"
+              onkeydown="if(event.key==='Enter')saveMall('${item.id}');if(event.key==='Escape')closeShipEdit('${item.id}')" />
+            <button class="due-save-btn" onclick="saveMall('${item.id}')">저장</button>
+            <button class="due-clear-btn" onclick="cancelOrder('${item.id}')">주문 취소</button>
+            <button class="due-cancel-btn" onclick="closeShipEdit('${item.id}')">닫기</button>
+          </div>
         </div>
         ${selectMode ? '' : `<button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>`}
       </div>`;
@@ -890,6 +931,9 @@ async function addItem() {
     qty:       document.getElementById('qty')?.value ? parseInt(document.getElementById('qty').value) : null,
     priority:  document.getElementById('priority')?.value || null,
     mediaType: document.getElementById('mediaType')?.value || null,
+    ship:      document.getElementById('ship')?.checked || false,
+    ordered:   null,
+    mall:      null,
     done: false, created: todayStr(),
   };
   items.unshift(item);
@@ -900,8 +944,22 @@ async function addItem() {
 }
 async function toggleDone(id) {
   const i = items.find(i=>i.id===id);
-  if (i) { i.done=!i.done; render(); await dbUpdate(id, {done: i.done}); }
+  if (!i) return;
+  // 택배 항목: 진행 중 → (주문함) 배송중 → 완료
+  if (i.ship && !i.done && !i.ordered) {
+    const mall = prompt('어디서 주문했어요? (쇼핑몰명)', '');
+    if (mall === null) return;
+    i.ordered = todayStr();
+    i.mall = mall.trim() || null;
+    render();
+    await dbUpdate(id, { ordered: i.ordered, mall: i.mall });
+    return;
+  }
+  i.done = !i.done;
+  render();
+  await dbUpdate(id, { done: i.done });
 }
+function isShipping(i) { return i.ship && i.ordered && !i.done; }
 async function deleteItem(id) {
   const item = items.find(i=>i.id===id); if(!item) return;
   const label = item.text.length>20 ? item.text.slice(0,20)+'…' : item.text;
@@ -943,6 +1001,33 @@ function closeTextEdit(id) {
   const el = document.getElementById(`text-edit-${id}`);
   if (el) el.style.display='none';
 }
+function openShipEdit(id) {
+  const el = document.getElementById(`ship-edit-${id}`);
+  if (!el) return;
+  el.style.display = 'flex';
+  const inp = document.getElementById(`mall-input-${id}`);
+  inp?.focus(); inp?.select();
+}
+function closeShipEdit(id) {
+  const el = document.getElementById(`ship-edit-${id}`);
+  if (el) el.style.display = 'none';
+}
+async function saveMall(id) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  i.mall = document.getElementById(`mall-input-${id}`)?.value.trim() || null;
+  render();
+  await dbUpdate(id, { mall: i.mall });
+}
+async function cancelOrder(id) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  if (!confirm('주문을 취소하고 진행 중으로 돌릴까요?')) return;
+  i.ordered = null; i.mall = null; i.done = false;
+  render();
+  await dbUpdate(id, { ordered: null, mall: null, done: false });
+}
+
 const PRI_LABEL = { high:'🔴 높음', medium:'🟡 보통', low:'🟢 낮음' };
 
 function openPriEdit(id) {
