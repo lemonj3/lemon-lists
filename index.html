@@ -868,12 +868,14 @@ function renderList() {
       chips += `<span class="sub-chip priority-${item.priority}">${PRI_LABEL[item.priority]}</span>`;
     }
     if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 드라마/영화',show:'🎭 공연',exhibit:'🖼️ 전시',book:'📚 책',drama:'🎬 드라마/영화'}[item.mediaType]||item.mediaType}</span>`;
-    if (item.ship) {
-      if (!item.ordered) {
-        chips += `<span class="sub-chip ship-chip">📦 택배</span>`;
-      } else {
+    if (item.cat === 'shop') {
+      if (item.ordered) {
         const mall = item.mall ? escHtml(item.mall) + ' · ' : '';
         chips += `<button class="ship-chip-btn${item.done?' arrived':''}" onclick="openShipEdit('${item.id}')">${item.done?'📦 도착':'📦 배송중'} · ${mall}${formatDate(item.ordered)} 주문</button>`;
+      } else if (item.ship && !item.done) {
+        chips += `<button class="ship-chip-btn" onclick="toggleShip('${item.id}')" title="눌러서 택배 해제">📦 택배</button>`;
+      } else if (!item.ship && !item.done) {
+        chips += `<button class="due-chip-btn no-due" onclick="toggleShip('${item.id}')">+ 택배</button>`;
       }
     }
     const isSel = selectedIds.has(item.id);
@@ -908,8 +910,9 @@ function renderList() {
           </div>
           <div class="due-edit-row" id="ship-edit-${item.id}" style="display:none">
             <input type="text" id="mall-input-${item.id}" value="${escHtml(item.mall||'')}" placeholder="쇼핑몰명"
-              onkeydown="if(event.key==='Enter')saveMall('${item.id}');if(event.key==='Escape')closeShipEdit('${item.id}')" />
-            <button class="due-save-btn" onclick="saveMall('${item.id}')">저장</button>
+              onkeydown="if(event.key==='Enter')saveShip('${item.id}');if(event.key==='Escape')closeShipEdit('${item.id}')" />
+            <input type="date" id="ordered-input-${item.id}" value="${item.ordered||''}" title="주문한 날짜" />
+            <button class="due-save-btn" onclick="saveShip('${item.id}')">저장</button>
             <button class="due-clear-btn" onclick="cancelOrder('${item.id}')">주문 취소</button>
             <button class="due-cancel-btn" onclick="closeShipEdit('${item.id}')">닫기</button>
           </div>
@@ -1012,12 +1015,23 @@ function closeShipEdit(id) {
   const el = document.getElementById(`ship-edit-${id}`);
   if (el) el.style.display = 'none';
 }
-async function saveMall(id) {
+async function saveShip(id) {
   const i = items.find(i => i.id === id);
   if (!i) return;
   i.mall = document.getElementById(`mall-input-${id}`)?.value.trim() || null;
+  const d = document.getElementById(`ordered-input-${id}`)?.value;
+  if (d) i.ordered = d;   // 비워두면 기존 날짜 유지 (되돌리기는 "주문 취소")
   render();
-  await dbUpdate(id, { mall: i.mall });
+  await dbUpdate(id, { mall: i.mall, ordered: i.ordered });
+}
+// 택배 여부 켜기/끄기 (나중에도 바꿀 수 있게)
+async function toggleShip(id) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  i.ship = !i.ship;
+  if (!i.ship) { i.ordered = null; i.mall = null; }
+  render();
+  await dbUpdate(id, { ship: i.ship, ordered: i.ordered, mall: i.mall });
 }
 async function cancelOrder(id) {
   const i = items.find(i => i.id === id);
