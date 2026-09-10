@@ -244,6 +244,14 @@
       position: relative;
     }
     .tab svg { width: 18px; height: 18px; stroke: var(--muted); transition: stroke .18s; }
+    /* 탭 라벨은 절대 두 줄로 쪼개지지 않게 (탭 높이가 들쭉날쭉해지는 것 방지) */
+    .tab span:not(.badge) { white-space: nowrap; }
+    /* 탭이 6개라 좁은 화면에서는 글자를 줄여 한 줄에 맞춘다 */
+    @media (max-width: 480px) {
+      .tabs { gap: 4px; }
+      .tab { padding: 10px 2px; }
+      .tab span:not(.badge) { font-size: .6rem; }
+    }
     .tab.active { border-color: var(--t3); background: var(--t3); color: var(--t-txt); }
     .tab.active svg { stroke: var(--t-txt); }
     .tab:not(.active):hover { border-color: var(--t2); background: var(--t1); color: var(--t-txt); }
@@ -510,6 +518,53 @@
     }
     .pri-chip-btn:hover { border-color: var(--t3); }
 
+    /* ── 기도 ── */
+    .pray-chip-btn {
+      font-size: .7rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 10px; cursor: pointer; font-family: inherit;
+      border: 1px solid var(--border); background: var(--t0); color: var(--muted);
+      transition: all .15s;
+    }
+    .pray-chip-btn:hover { border-color: var(--t3); }
+    .pray-chip-btn.pray-praying  { background: var(--t1); color: var(--t-txt); border-color: var(--t3); }
+    .pray-chip-btn.pray-answered { background: #ddeee0; color: var(--struct-dk); border-color: #a8ccb0; }
+    .pray-chip-btn.pray-closed   { background: none; color: var(--muted); }
+    /* 응답 항목은 흐리게 하지 않고, 왼쪽 테두리로 표시만 남긴다 */
+    .item-card.pray-answered { border-left-color: #7CB880; }
+
+    .notes-panel {
+      margin-top: 8px; padding: 8px 10px;
+      background: var(--t0); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .note-item {
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 4px 0; border-bottom: 1px dashed var(--border);
+    }
+    .note-item:last-of-type { border-bottom: none; }
+    .note-date {
+      font-size: .65rem; font-weight: 700; color: var(--muted);
+      flex-shrink: 0; padding-top: 2px; min-width: 62px;
+    }
+    .note-text {
+      font-size: .8rem; color: var(--text); flex: 1;
+      word-break: break-word; white-space: pre-wrap;
+    }
+    .note-del {
+      background: none; border: none; color: var(--muted);
+      font-size: .9rem; line-height: 1; cursor: pointer; flex-shrink: 0; padding: 2px 4px;
+    }
+    .note-del:hover { color: var(--danger); }
+    .note-add { display: flex; gap: 6px; margin-top: 8px; }
+    .note-add input {
+      flex: 1; min-width: 0; padding: 6px 10px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .8rem; color: var(--text); background: var(--surface);
+      outline: none; font-family: inherit;
+    }
+    .note-add input:focus { border-color: var(--t3); }
+    .check-btn.answered { background: #ddeee0; border-color: #7CB880; }
+    .check-btn.answered::after { content: '✓'; color: #4a7a52; font-size: .75rem; font-weight: 800; }
+
     /* ── 택배 ── */
     .ship-check {
       display: flex; align-items: center; gap: 4px; padding: 0 8px;
@@ -589,6 +644,10 @@
     <div class="tab" data-cat="place" onclick="switchCat('place')">
       <i data-lucide="map-pin"></i><span>가고싶은곳</span>
       <span class="badge" id="badge-place" style="display:none"></span>
+    </div>
+    <div class="tab" data-cat="pray" onclick="switchCat('pray')">
+      <i data-lucide="hand-heart"></i><span>기도</span>
+      <span class="badge" id="badge-pray" style="display:none"></span>
     </div>
   </div>
 
@@ -681,6 +740,7 @@ let currentCat = 'shop';
 let currentFilter = 'active';
 let selectMode = false;
 let selectedIds = new Set();
+let notesOpen = new Set();
 let autoFocusForm = false;
 
 async function loadItems() {
@@ -795,6 +855,21 @@ function renderTabs() {
 
 function renderStats() {
   const ci = items.filter(i => i.cat === currentCat);
+  if (currentCat === 'pray') {
+    const n = s => ci.filter(i => prayStatus(i) === s).length;
+    const prayPills = [
+      { key:'praying',  num:n('praying'),  lbl:'🙏 기도중', cls:'' },
+      { key:'answered', num:n('answered'), lbl:'✅ 응답',   cls:'' },
+      { key:'all',      num:ci.length,     lbl:'전체',      cls:'' },
+    ];
+    if (n('closed') > 0) prayPills.push({ key:'closed', num:n('closed'), lbl:'종료', cls:'' });
+    document.getElementById('stats').innerHTML = prayPills.map(p => `
+      <div class="stat-pill ${p.cls}${currentFilter===p.key?' active':''}" onclick="setFilter('${p.key}')">
+        <div class="stat-num">${p.num}</div>
+        <div class="stat-lbl">${p.lbl}</div>
+      </div>`).join('');
+    return;
+  }
   const done = ci.filter(i => i.done).length;
   const shipping = ci.filter(isShipping).length;
   const active = ci.filter(i => !i.done && !isShipping(i)).length;
@@ -823,7 +898,7 @@ function renderForm() {
   document.getElementById('addForm').innerHTML = `
     <div class="row">
       <input type="text" id="newText"
-        placeholder="${{shop:'살 것 추가...',life:'할 일 추가...',work:'업무 추가...',media:'제목 추가...',place:'장소 추가...'}[cat]||'추가...'}"
+        placeholder="${{shop:'살 것 추가...',life:'할 일 추가...',work:'업무 추가...',media:'제목 추가...',place:'장소 추가...',pray:'기도 제목 추가...'}[cat]||'추가...'}"
         onkeydown="if(event.key==='Enter')addItem()" />
       ${extra}
     </div>
@@ -840,6 +915,11 @@ function renderForm() {
 
 function getFiltered() {
   let filtered = items.filter(i => i.cat === currentCat);
+  if (currentCat === 'pray') {
+    if (['praying','answered','closed'].includes(currentFilter))
+      filtered = filtered.filter(i => prayStatus(i) === currentFilter);
+    return filtered.sort((a,b) => new Date(b.created) - new Date(a.created));
+  }
   if (currentFilter==='active')   filtered = filtered.filter(i => !i.done && !isShipping(i));
   if (currentFilter==='shipping') filtered = filtered.filter(i => isShipping(i));
   if (currentFilter==='done')     filtered = filtered.filter(i => i.done);
@@ -857,7 +937,7 @@ function renderList() {
   let filtered = getFiltered();
   const container = document.getElementById('itemsList');
   if (!filtered.length) {
-    const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], shipping:['기다리는 택배가 없어요','택배 항목을 주문 완료하면 여기 모여요 📦'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
+    const msgs = { active:['아직 할 일이 없어요!','새 항목을 추가해 보세요 🍋'], shipping:['기다리는 택배가 없어요','택배 항목을 주문 완료하면 여기 모여요 📦'], done:['완료된 항목이 없어요','체크해서 완료 처리해 보세요 ✔️'], overdue:['기한 초과 없음!','모두 제때 처리하고 있어요 🎉'], praying:['기도 제목이 없어요','마음에 있는 것을 적어보세요 🙏'], answered:['아직 응답 기록이 없어요','응답받은 기도가 여기 모여요 ✨'], closed:['종료한 기도가 없어요','',], all:['아무것도 없어요!','첫 항목을 추가해 보세요 🍋'] };
     const [t,s] = msgs[currentFilter]||msgs.all;
     container.innerHTML = `<div class="empty-state"><span class="e">🌸</span><strong>${t}</strong><br><span style="font-size:.82rem">${s}</span></div>`;
     return;
@@ -879,6 +959,14 @@ function renderList() {
       chips += `<span class="sub-chip priority-${item.priority}">${PRI_LABEL[item.priority]}</span>`;
     }
     if (item.mediaType)  chips += `<span class="sub-chip media-${item.mediaType}">${{movie:'🎬 드라마/영화',show:'🎭 공연',exhibit:'🖼️ 전시',book:'📚 책',drama:'🎬 드라마/영화'}[item.mediaType]||item.mediaType}</span>`;
+    if (item.cat === 'pray') {
+      const st = prayStatus(item);
+      const notes = noteList(item);
+      chips += `<button class="pray-chip-btn pray-${st}" onclick="openPrayEdit('${item.id}')">${PRAY_LABEL[st]}${st==='answered'&&item.answered?' · '+formatDate(item.answered):''}</button>`;
+      chips += notes.length
+        ? `<button class="due-chip-btn" onclick="toggleNotes('${item.id}')">📝 기록 ${notes.length}개</button>`
+        : `<button class="due-chip-btn no-due" onclick="toggleNotes('${item.id}')">+ 기록</button>`;
+    }
     if (item.cat === 'shop') {
       if (item.ordered) {
         const mall = item.mall ? escHtml(item.mall) + ' · ' : '';
@@ -891,12 +979,14 @@ function renderList() {
     }
     const isSel = selectedIds.has(item.id);
     return `
-      <div class="item-card${item.done?' done':''}${over?' overdue':''}${selectMode?' selectable':''}${isSel?' sel-selected':''}"
+      <div class="item-card${item.done?' done':''}${over?' overdue':''}${item.cat==='pray'&&prayStatus(item)==='answered'?' pray-answered':''}${selectMode?' selectable':''}${isSel?' sel-selected':''}"
         data-id="${item.id}"
         ${selectMode?`onclick="toggleSelect('${item.id}')"`:''}>
         ${selectMode
           ? `<div class="item-select-check">${isSel?'✓':''}</div>`
-          : `<button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>`}
+          : item.cat === 'pray'
+            ? `<button class="check-btn${prayStatus(item)==='answered'?' answered':''}${item.done?' checked':''}" onclick="togglePray('${item.id}')" title="응답 표시"></button>`
+            : `<button class="check-btn${item.done?' checked':''}" onclick="toggleDone('${item.id}')"></button>`}
         <div class="item-body">
           <div class="item-text${item.done?' done-text':''}" ${selectMode?'':`onclick="startEditText('${item.id}')" title="클릭하여 수정"`}>${escHtml(item.text)}</div>
           <div class="text-edit-row" id="text-edit-${item.id}" style="display:none">
@@ -927,6 +1017,26 @@ function renderList() {
             <button class="due-clear-btn" onclick="cancelOrder('${item.id}')">주문 취소</button>
             <button class="due-cancel-btn" onclick="closeShipEdit('${item.id}')">닫기</button>
           </div>
+          <div class="due-edit-row" id="pray-edit-${item.id}" style="display:none">
+            <button class="due-save-btn" onclick="setPrayStatus('${item.id}','praying')">🙏 기도중</button>
+            <button class="due-save-btn" onclick="setPrayStatus('${item.id}','answered')">✅ 응답</button>
+            <button class="due-clear-btn" onclick="setPrayStatus('${item.id}','closed')">종료</button>
+            <button class="due-cancel-btn" onclick="closePrayEdit('${item.id}')">닫기</button>
+          </div>
+          ${item.cat === 'pray' ? `
+          <div class="notes-panel" id="notes-${item.id}" style="display:${notesOpen.has(item.id)?'block':'none'}">
+            ${noteList(item).map((n, idx) => `
+              <div class="note-item">
+                <span class="note-date">${formatDate(n.createdAt)}</span>
+                <span class="note-text">${escHtml(n.text)}</span>
+                <button class="note-del" onclick="deleteNote('${item.id}',${idx})" title="메모 삭제">×</button>
+              </div>`).join('')}
+            <div class="note-add">
+              <input type="text" id="note-input-${item.id}" placeholder="짧게 한 줄 남겨도 좋아요"
+                onkeydown="if(event.key==='Enter')addNote('${item.id}')" />
+              <button class="due-save-btn" onclick="addNote('${item.id}')">기록</button>
+            </div>
+          </div>` : ''}
         </div>
         ${selectMode ? '' : `<button class="delete-btn" onclick="deleteItem('${item.id}')">×</button>`}
       </div>`;
@@ -948,10 +1058,13 @@ async function addItem() {
     ship:      document.getElementById('ship')?.checked || false,
     ordered:   null,
     mall:      null,
+    status:    currentCat === 'pray' ? 'praying' : null,
+    answered:  null,
+    notes:     [],
     done: false, created: todayStr(),
   };
   items.unshift(item);
-  currentFilter = 'active';
+  currentFilter = defaultFilter(item.cat);
   if (currentCat !== item.cat) currentCat = item.cat;
   render();
   await dbAdd(item);
@@ -992,7 +1105,9 @@ function hideDueDate() {
   const d = document.getElementById('dueDate');
   if (d) d.value = '';
 }
-function switchCat(cat) { currentCat=cat; currentFilter='active'; autoFocusForm=true; render(); }
+// 기도 탭은 '진행 중' 대신 '기도중'이 기본 필터
+function defaultFilter(cat) { return cat === 'pray' ? 'praying' : 'active'; }
+function switchCat(cat) { currentCat=cat; currentFilter=defaultFilter(cat); autoFocusForm=true; render(); }
 function setFilter(f) { currentFilter=f; render(); }
 function openDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='flex'; document.getElementById(`due-input-${id}`)?.focus(); }
 function closeDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='none'; }
@@ -1053,6 +1168,74 @@ async function cancelOrder(id) {
   await dbUpdate(id, { ordered: null, mall: null, done: false });
 }
 
+// ── 기도 리스트 ───────────────────────────────────────────
+// 기도중 / 응답 / 종료 3가지 상태.
+// 응답은 "나중에 다시 볼 기록"이라 흐리게 처리하지 않고(done=false),
+// 종료만 다른 카테고리의 완료와 같은 취소선·흐림 처리(done=true)를 받는다.
+const PRAY_LABEL = { praying:'🙏 기도중', answered:'✅ 응답', closed:'종료' };
+
+function prayStatus(i) { return i.status || (i.done ? 'closed' : 'praying'); }
+function noteList(i) { return Array.isArray(i.notes) ? i.notes : []; }
+
+async function setPrayStatus(id, status) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  i.status = status;
+  i.done = (status === 'closed');       // 종료만 흐림 처리
+  if (status === 'answered' && !i.answered) i.answered = todayStr();
+  if (status === 'praying') i.answered = null;
+  render();
+  await dbUpdate(id, { status: i.status, done: i.done, answered: i.answered });
+}
+
+// 동그라미 버튼: 기도중 ↔ 응답 (종료는 상태 칩에서)
+function togglePray(id) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  setPrayStatus(id, prayStatus(i) === 'answered' ? 'praying' : 'answered');
+}
+
+function openPrayEdit(id) {
+  const el = document.getElementById(`pray-edit-${id}`);
+  if (el) el.style.display = 'flex';
+}
+function closePrayEdit(id) {
+  const el = document.getElementById(`pray-edit-${id}`);
+  if (el) el.style.display = 'none';
+}
+
+// 메모 패널은 다시 렌더링돼도 열린 상태가 유지돼야 해서 따로 기억해 둔다
+function toggleNotes(id) {
+  if (notesOpen.has(id)) notesOpen.delete(id);
+  else notesOpen.add(id);
+  render();
+  if (notesOpen.has(id)) setTimeout(() => document.getElementById(`note-input-${id}`)?.focus(), 50);
+}
+
+// 메모는 누적형. 응답 날짜와 별개로 각 메모의 작성 날짜를 따로 기록한다.
+async function addNote(id) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  const inp = document.getElementById(`note-input-${id}`);
+  const text = inp?.value.trim();
+  if (!text) { inp?.focus(); return; }
+  i.notes = [...noteList(i), { text, createdAt: todayStr() }];
+  notesOpen.add(id);
+  render();
+  await dbUpdate(id, { notes: i.notes });
+}
+async function deleteNote(id, idx) {
+  const i = items.find(i => i.id === id);
+  if (!i) return;
+  const list = noteList(i);
+  if (!list[idx]) return;
+  if (!confirm('이 메모를 지울까요?')) return;
+  i.notes = list.filter((_, n) => n !== idx);
+  notesOpen.add(id);
+  render();
+  await dbUpdate(id, { notes: i.notes });
+}
+
 const PRI_LABEL = { high:'🔴 높음', medium:'🟡 보통', low:'🟢 낮음' };
 
 function openPriEdit(id) {
@@ -1077,6 +1260,7 @@ const CATS = [
   { key:'work',  label:'업무',     icon:'💼' },
   { key:'media', label:'보고싶은것', icon:'🎬' },
   { key:'place', label:'가고싶은곳', icon:'📍' },
+  { key:'pray',  label:'기도',       icon:'🙏' },
 ];
 
 function enterSelectMode() { selectMode=true; selectedIds.clear(); render(); }
