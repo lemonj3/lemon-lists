@@ -621,12 +621,23 @@ const THEMES = [
 
 let currentTheme = localStorage.getItem('myListsTheme') || 'lemon';
 
+// 상태바 색 요청.
+// 기존 meta 태그의 content만 바꾸면 안드로이드 크롬이 무시하는 경우가 있어서,
+// 태그를 지우고 새로 꽂아 넣어 브라우저가 다시 읽게 만든다.
+function setStatusBarColor(color) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());
+  const m = document.createElement('meta');
+  m.setAttribute('name', 'theme-color');
+  m.setAttribute('content', color);
+  document.head.appendChild(m);
+}
+
 function applyTheme(key) {
   document.documentElement.setAttribute('data-theme', key);
   currentTheme = key;
   localStorage.setItem('myListsTheme', key);
   const t = THEMES.find(t => t.key === key);
-  if (t) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.swatch);
+  if (t) setStatusBarColor(t.swatch);
 }
 
 function openTheme() {
