@@ -1067,6 +1067,10 @@ async function addItem() {
   currentFilter = defaultFilter(item.cat);
   if (currentCat !== item.cat) currentCat = item.cat;
   render();
+  // render()가 입력 폼을 통째로 다시 그려서 입력창 요소가 교체된다.
+  // 연속 입력이 끊기지 않게 새 입력창으로 포커스를 되돌린다.
+  // (await 앞이라 사용자 조작 흐름 안에서 실행 → 모바일 자판도 내려가지 않음)
+  document.getElementById('newText')?.focus();
   await dbAdd(item);
 }
 async function toggleDone(id) {
