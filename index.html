@@ -264,6 +264,20 @@
       word-break: break-word;
     }
     .memo-title:hover { color: var(--struct-dk); }
+    .memo-title-text { display: block; }
+    .memo-preview {
+      display: block; margin-top: 3px;
+      font-size: .74rem; font-weight: 500; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .memo-title-edit {
+      width: 100%; margin-bottom: 6px; padding: 7px 10px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .82rem; font-weight: 700; color: var(--text);
+      background: var(--t0); outline: none; font-family: inherit;
+    }
+    .memo-title-edit:focus { border-color: var(--t3); }
+    .memo-copy.failed { background: #f5e0d8; border-color: #e0b8a8; color: var(--danger); }
     .memo-copy {
       flex-shrink: 0; margin: 6px 6px 6px 0; padding: 4px 12px;
       background: var(--t1); color: var(--t-txt);
@@ -826,13 +840,34 @@ function openMemo() {
   setTimeout(() => document.getElementById('memoSearch')?.focus(), 50);
 }
 function closeMemo() {
+  const open = [...memoOpen];
+  stashOpenMemoEdits();
   document.getElementById('memoPanel').classList.add('hidden');
+  // 펼쳐둔 채로 닫아도 저장되게
+  open.forEach(id => {
+    const m = items.find(i => i.id === id);
+    if (m) dbUpdate(id, { text: m.text, body: m.body });
+  });
 }
 function handleMemoPanelClick(e) {
   if (e.target === document.getElementById('memoPanel')) closeMemo();
 }
 
+// 열려 있는 메모 카드에 타이핑한 내용을 화면에서 걷어와 메모리에 반영한다.
+// (DB 저장은 안 함) 검색어를 치거나 다시 그릴 때 입력이 날아가지 않게 하려는 것.
+function stashOpenMemoEdits() {
+  memoOpen.forEach(id => {
+    const m = items.find(i => i.id === id);
+    if (!m) return;
+    const b = document.getElementById(`memo-edit-${id}`);
+    const t = document.getElementById(`memo-title-edit-${id}`);
+    if (b) m.body = b.value;
+    if (t) m.text = t.value.trim() || (b?.value || '').trim().slice(0, 20) || '제목 없음';
+  });
+}
+
 function renderMemoList() {
+  stashOpenMemoEdits();
   const q = (document.getElementById('memoSearch')?.value || '').trim().toLowerCase();
   const list = items
     .filter(i => i.cat === 'memo')
@@ -845,15 +880,23 @@ function renderMemoList() {
   }
   el.innerHTML = list.map(m => {
     const open = memoOpen.has(m.id);
+    // 접힌 상태에서도 내용을 한 줄 보여준다 → 짧은 건 펼칠 필요 없이 바로 확인
+    const preview = (m.body || '').replace(/\s+/g, ' ').trim();
     return `
       <div class="memo-card${open ? ' open' : ''}">
         <div class="memo-head">
-          <button class="memo-title" onclick="toggleMemo('${m.id}')">${escHtml(m.text)}</button>
+          <button class="memo-title" onclick="toggleMemo('${m.id}')">
+            <span class="memo-title-text">${escHtml(m.text)}</span>
+            ${!open && preview ? `<span class="memo-preview">${escHtml(preview)}</span>` : ''}
+          </button>
           <button class="memo-copy" id="copy-${m.id}" onclick="copyMemo('${m.id}')" title="내용 복사">복사</button>
         </div>
         ${open ? `
         <div class="memo-body-wrap">
-          <textarea class="memo-body-edit" id="memo-edit-${m.id}" rows="4">${escHtml(m.body || '')}</textarea>
+          <input type="text" class="memo-title-edit" id="memo-title-edit-${m.id}"
+            value="${escHtml(m.text)}" placeholder="제목" />
+          <textarea class="memo-body-edit" id="memo-edit-${m.id}" rows="4"
+            placeholder="내용">${escHtml(m.body || '')}</textarea>
           <div class="memo-actions">
             <button class="due-save-btn" onclick="saveMemo('${m.id}')">저장</button>
             <button class="due-clear-btn" onclick="deleteMemo('${m.id}')">삭제</button>
@@ -865,41 +908,61 @@ function renderMemoList() {
 }
 
 function toggleMemo(id) {
-  if (memoOpen.has(id)) memoOpen.delete(id);
-  else memoOpen.add(id);
-  renderMemoList();
+  if (memoOpen.has(id)) {
+    stashOpenMemoEdits();  // 목록에서 빼기 전에 화면에 쓴 값을 먼저 걷어와야 한다
+    memoOpen.delete(id);
+    saveMemo(id);          // 닫을 때 자동 저장 → 저장 안 눌러서 날아가는 일 없게
+  } else {
+    memoOpen.add(id);
+    renderMemoList();
+    setTimeout(() => document.getElementById(`memo-edit-${id}`)?.focus(), 50);
+  }
 }
 
+// 복사되는 건 언제나 "내용". 제목은 찾기 위한 이름표일 뿐이라 복사 대상이 아니다.
 async function copyMemo(id) {
   const m = items.find(i => i.id === id);
   if (!m) return;
   const btn = document.getElementById(`copy-${id}`);
-  const ok = await copyText(m.body || m.text);
-  if (btn) {
-    btn.textContent = ok ? '복사됨!' : '복사 실패';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 1200);
-  }
+  const flash = (msg, cls) => {
+    if (!btn) return;
+    btn.textContent = msg;
+    btn.classList.add(cls);
+    setTimeout(() => { btn.textContent = '복사'; btn.classList.remove(cls); }, 1400);
+  };
+  // 펼쳐서 고치는 중이면 저장 안 했어도 지금 화면에 있는 내용을 복사한다
+  const live = document.getElementById(`memo-edit-${id}`);
+  const text = (live ? live.value : (m.body || '')).trim();
+  if (!text) { flash('내용 없음', 'failed'); return; }
+  const ok = await copyText(text);
+  flash(ok ? '복사됨!' : '복사 실패', ok ? 'copied' : 'failed');
 }
 
-// clipboard API가 막힌 환경을 대비해 예전 방식도 남겨둔다
+// clipboard API가 막힌 환경(비보안 연결 등)을 대비해 예전 방식도 남겨둔다
 async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (e) {
+  if (!text) return false;
+  if (navigator.clipboard && window.isSecureContext) {
     try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand('copy');
-      ta.remove();
-      return ok;
-    } catch (e2) { return false; }
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) { /* 아래 예전 방식으로 */ }
   }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);   // 모바일 대응
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) { return false; }
 }
 
 async function addMemo() {
@@ -927,12 +990,14 @@ async function addMemo() {
   await dbAdd(memo);
 }
 
+// 제목·내용 둘 다 저장한다
 async function saveMemo(id) {
+  stashOpenMemoEdits();           // 화면에 타이핑된 값을 먼저 걷어온 뒤
   const m = items.find(i => i.id === id);
   if (!m) return;
-  m.body = document.getElementById(`memo-edit-${id}`)?.value ?? m.body;
   renderMemoList();
-  await dbUpdate(id, { body: m.body });
+  const res = await dbUpdate(id, { text: m.text, body: m.body });
+  if (res?.error) alert('서버에 저장하지 못했어요:\n' + res.error.message);
 }
 
 async function deleteMemo(id) {
@@ -970,7 +1035,7 @@ async function dbAdd(item) {
   await _SB.from('todos').insert(item);
 }
 async function dbUpdate(id, changes) {
-  await _SB.from('todos').update(changes).eq('id', id);
+  return await _SB.from('todos').update(changes).eq('id', id);
 }
 async function dbDelete(id) {
   await _SB.from('todos').delete().eq('id', id);
