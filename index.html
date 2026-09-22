@@ -179,9 +179,12 @@
       font-family: 'Gaegu', cursive;
     }
 
-    /* 테마 버튼 */
-    .theme-btn {
+    /* 헤더 버튼 (메모 · 테마) */
+    .header-btns {
       position: absolute; top: 4px; right: 0;
+      display: flex; gap: 6px;
+    }
+    .theme-btn {
       background: var(--t1); border: 1.5px solid var(--t2);
       border-radius: 12px; padding: 6px 8px;
       cursor: pointer; transition: all .15s;
@@ -190,6 +193,11 @@
     }
     .theme-btn:hover { background: var(--t2); }
     .theme-btn svg { width: 14px; height: 14px; stroke: var(--t-txt); }
+    /* 좁은 화면에선 버튼이 제목을 가려서 아이콘만 남긴다 */
+    @media (max-width: 480px) {
+      .theme-btn { padding: 8px; font-size: 0; gap: 0; }
+      .theme-btn svg { width: 16px; height: 16px; }
+    }
 
     /* 테마 패널 */
     .theme-panel {
@@ -227,6 +235,64 @@
       font-size: .88rem; font-weight: 700; cursor: pointer;
     }
     .theme-close:hover { background: var(--t2); }
+
+    /* ── 메모 패널 ── */
+    .memo-inner { max-height: 88vh; display: flex; flex-direction: column; }
+    .memo-search {
+      width: 100%; padding: 9px 12px; margin-bottom: 10px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: .85rem; color: var(--text); background: var(--t0);
+      outline: none; font-family: inherit;
+    }
+    .memo-search:focus { border-color: var(--t3); }
+    .memo-list { flex: 1; overflow-y: auto; min-height: 60px; }
+    .memo-empty {
+      text-align: center; color: var(--muted); font-size: .82rem;
+      padding: 24px 8px; line-height: 1.6;
+    }
+    .memo-card {
+      border: 1.5px solid var(--border); border-radius: 14px;
+      margin-bottom: 8px; background: var(--surface); overflow: hidden;
+    }
+    .memo-card.open { border-color: var(--t3); }
+    .memo-head { display: flex; align-items: stretch; gap: 6px; }
+    .memo-title {
+      flex: 1; min-width: 0; text-align: left;
+      padding: 10px 12px; background: none; border: none;
+      font-size: .85rem; font-weight: 700; color: var(--text);
+      cursor: pointer; font-family: inherit;
+      word-break: break-word;
+    }
+    .memo-title:hover { color: var(--struct-dk); }
+    .memo-copy {
+      flex-shrink: 0; margin: 6px 6px 6px 0; padding: 4px 12px;
+      background: var(--t1); color: var(--t-txt);
+      border: 1px solid var(--t2); border-radius: 10px;
+      font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: all .15s;
+    }
+    .memo-copy:hover { background: var(--t2); }
+    .memo-copy.copied { background: #ddeee0; border-color: #a8ccb0; color: var(--struct-dk); }
+    .memo-body-wrap { padding: 0 10px 10px; }
+    .memo-body-edit {
+      width: 100%; padding: 8px 10px; resize: vertical;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .82rem; line-height: 1.5; color: var(--text);
+      background: var(--t0); outline: none; font-family: inherit;
+    }
+    .memo-body-edit:focus { border-color: var(--t3); }
+    .memo-actions { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+    .memo-add {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed var(--border);
+    }
+    .memo-add input, .memo-add textarea {
+      width: 100%; padding: 8px 10px; resize: vertical;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .82rem; line-height: 1.5; color: var(--text);
+      background: var(--t0); outline: none; font-family: inherit;
+    }
+    .memo-add input:focus, .memo-add textarea:focus { border-color: var(--t3); }
 
     /* ── Category Tabs ── */
     .tabs {
@@ -619,9 +685,14 @@
   <div class="header">
     <h1>Lemon <span>Lists</span> 🍋</h1>
     <div class="today-badge" id="todayBadge"></div>
-    <button class="theme-btn" onclick="openTheme()">
-      <i data-lucide="palette"></i> 테마
-    </button>
+    <div class="header-btns">
+      <button class="theme-btn" onclick="openMemo()">
+        <i data-lucide="clipboard-list"></i> 메모
+      </button>
+      <button class="theme-btn" onclick="openTheme()">
+        <i data-lucide="palette"></i> 테마
+      </button>
+    </div>
   </div>
 
   <div class="tabs" id="tabs">
@@ -663,6 +734,22 @@
     <h3>🎨 테마 선택</h3>
     <div class="theme-grid" id="themeGrid"></div>
     <button class="theme-close" onclick="closeTheme()">닫기</button>
+  </div>
+</div>
+
+<!-- 메모 패널: 가끔 필요한데 기억 안 나는 문구·용어 모음 -->
+<div class="theme-panel hidden" id="memoPanel" onclick="handleMemoPanelClick(event)">
+  <div class="theme-inner memo-inner">
+    <h3>📋 메모</h3>
+    <input type="text" id="memoSearch" class="memo-search" placeholder="검색 (제목·내용)"
+      oninput="renderMemoList()" />
+    <div class="memo-list" id="memoList"></div>
+    <div class="memo-add" id="memoAdd">
+      <input type="text" id="memoTitle" placeholder="제목 (예: 후원자 감사 인사)" />
+      <textarea id="memoBody" rows="3" placeholder="내용"></textarea>
+      <button class="due-save-btn" onclick="addMemo()">+ 메모 추가</button>
+    </div>
+    <button class="theme-close" onclick="closeMemo()">닫기</button>
   </div>
 </div>
 
@@ -726,6 +813,136 @@ function closeTheme() {
 
 function handlePanelClick(e) {
   if (e.target === document.getElementById('themePanel')) closeTheme();
+}
+
+// ── 메모 ──────────────────────────────────────────────────
+// 가끔 필요한데 기억 안 나는 문구·용어 모음.
+// 할 일이 아니므로 완료·기한 개념이 없고, 꺼내 쓰는 게 목적이라 복사가 핵심.
+let memoOpen = new Set();
+
+function openMemo() {
+  document.getElementById('memoPanel').classList.remove('hidden');
+  renderMemoList();
+  setTimeout(() => document.getElementById('memoSearch')?.focus(), 50);
+}
+function closeMemo() {
+  document.getElementById('memoPanel').classList.add('hidden');
+}
+function handleMemoPanelClick(e) {
+  if (e.target === document.getElementById('memoPanel')) closeMemo();
+}
+
+function renderMemoList() {
+  const q = (document.getElementById('memoSearch')?.value || '').trim().toLowerCase();
+  const list = items
+    .filter(i => i.cat === 'memo')
+    .filter(i => !q || (i.text + ' ' + (i.body || '')).toLowerCase().includes(q))
+    .sort((a, b) => new Date(b.created) - new Date(a.created));
+  const el = document.getElementById('memoList');
+  if (!list.length) {
+    el.innerHTML = `<div class="memo-empty">${q ? '찾는 메모가 없어요' : '아직 메모가 없어요.<br>자주 까먹는 문구를 적어두세요 📋'}</div>`;
+    return;
+  }
+  el.innerHTML = list.map(m => {
+    const open = memoOpen.has(m.id);
+    return `
+      <div class="memo-card${open ? ' open' : ''}">
+        <div class="memo-head">
+          <button class="memo-title" onclick="toggleMemo('${m.id}')">${escHtml(m.text)}</button>
+          <button class="memo-copy" id="copy-${m.id}" onclick="copyMemo('${m.id}')" title="내용 복사">복사</button>
+        </div>
+        ${open ? `
+        <div class="memo-body-wrap">
+          <textarea class="memo-body-edit" id="memo-edit-${m.id}" rows="4">${escHtml(m.body || '')}</textarea>
+          <div class="memo-actions">
+            <button class="due-save-btn" onclick="saveMemo('${m.id}')">저장</button>
+            <button class="due-clear-btn" onclick="deleteMemo('${m.id}')">삭제</button>
+            <button class="due-cancel-btn" onclick="toggleMemo('${m.id}')">닫기</button>
+          </div>
+        </div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function toggleMemo(id) {
+  if (memoOpen.has(id)) memoOpen.delete(id);
+  else memoOpen.add(id);
+  renderMemoList();
+}
+
+async function copyMemo(id) {
+  const m = items.find(i => i.id === id);
+  if (!m) return;
+  const btn = document.getElementById(`copy-${id}`);
+  const ok = await copyText(m.body || m.text);
+  if (btn) {
+    btn.textContent = ok ? '복사됨!' : '복사 실패';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 1200);
+  }
+}
+
+// clipboard API가 막힌 환경을 대비해 예전 방식도 남겨둔다
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e2) { return false; }
+  }
+}
+
+async function addMemo() {
+  const tEl = document.getElementById('memoTitle');
+  const bEl = document.getElementById('memoBody');
+  const title = tEl?.value.trim();
+  const body = bEl?.value.trim();
+  if (!title && !body) { tEl?.focus(); return; }
+  const memo = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    cat: 'memo',
+    text: title || body.slice(0, 20),
+    body: body || '',
+    due: '', qty: null, priority: null, mediaType: null,
+    ship: false, ordered: null, mall: null,
+    status: null, answered: null, notes: [],
+    done: false, created: todayStr(),
+  };
+  items.unshift(memo);
+  tEl.value = ''; bEl.value = '';
+  const s = document.getElementById('memoSearch');
+  if (s) s.value = '';
+  renderMemoList();
+  tEl.focus();
+  await dbAdd(memo);
+}
+
+async function saveMemo(id) {
+  const m = items.find(i => i.id === id);
+  if (!m) return;
+  m.body = document.getElementById(`memo-edit-${id}`)?.value ?? m.body;
+  renderMemoList();
+  await dbUpdate(id, { body: m.body });
+}
+
+async function deleteMemo(id) {
+  const m = items.find(i => i.id === id);
+  if (!m) return;
+  if (!confirm(`"${m.text}" 메모를 삭제할까요?`)) return;
+  items = items.filter(i => i.id !== id);
+  memoOpen.delete(id);
+  renderMemoList();
+  await dbDelete(id);
 }
 
 // ── Supabase ──────────────────────────────────────────────
