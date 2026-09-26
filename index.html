@@ -345,7 +345,37 @@
     }
 
     /* ── Stats Pills ── */
-    .stats { display: flex; gap: 6px; margin-bottom: 14px; align-items: center; }
+    .stats-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .stats { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+    .sort-ctrl { flex: 0 0 auto; }
+
+    /* ── 정렬 ── */
+    /* 좁은 화면 기본값: 드롭다운 (add-form select와 같은 생김새) */
+    .sort-buttons { display: none; }
+    .sort-select {
+      padding: 7px 10px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: .78rem; color: var(--text);
+      background: var(--t0); outline: none;
+      font-family: inherit; cursor: pointer;
+      transition: border .15s; max-width: 130px;
+    }
+    .sort-select:focus { border-color: var(--t3); }
+    /* 넓은 화면: 버튼 가로 나열 */
+    @media (min-width: 768px) {
+      .sort-buttons { display: flex; gap: 4px; }
+      .sort-select { display: none; }
+    }
+    .sort-btn {
+      padding: 6px 10px; white-space: nowrap;
+      background: var(--surface); color: var(--muted);
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: .75rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: all .15s;
+    }
+    .sort-btn:hover { border-color: var(--t2); background: var(--t1); color: var(--t-txt); }
+    .sort-btn.active { background: var(--t2); border-color: var(--t3); color: var(--t-txt); }
+
     .stat-pill {
       flex: 1; min-width: 0;
       background: var(--surface); border: 1.5px solid var(--border);
@@ -357,7 +387,16 @@
     .stat-pill.active .stat-num,
     .stat-pill.active .stat-lbl { color: var(--t-txt); }
     .stat-num { font-size: 1.1rem; font-weight: 800; color: var(--text); font-family: 'Gaegu', cursive; }
-    .stat-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; font-family: 'Gaegu', cursive; }
+    /* 정렬 칸이 자리를 차지해 통계 칸이 좁아져도 라벨이 두 줄로 쪼개지지 않게 */
+    .stat-lbl {
+      font-size: .68rem; color: var(--muted); font-weight: 700;
+      font-family: 'Gaegu', cursive;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    @media (max-width: 480px) {
+      .stat-lbl { font-size: .6rem; }
+      .sort-select { max-width: 96px; font-size: .72rem; padding: 7px 6px; }
+    }
     .stat-pill.overdue-pill { background: #fdf0ea; }
     .stat-pill.overdue-pill .stat-num { color: var(--danger); }
     .stat-pill.overdue-pill.active { background: var(--danger); border-color: #9a6050; }
@@ -736,7 +775,10 @@
     </div>
   </div>
 
-  <div class="stats" id="stats"></div>
+  <div class="stats-row">
+    <div class="stats" id="stats"></div>
+    <div class="sort-ctrl" id="sortCtrl"></div>
+  </div>
   <div class="add-form" id="addForm"></div>
   <div class="list-toolbar" id="listToolbar"></div>
   <div class="items-list" id="itemsList"></div>
@@ -1071,6 +1113,7 @@ function render() {
   renderTodayBadge();
   renderTabs();
   renderStats();
+  renderSort();
   renderForm();
   renderToolbar();
   renderList();
@@ -1195,24 +1238,64 @@ function renderForm() {
   if (autoFocusForm) { setTimeout(() => document.getElementById('newText')?.focus(), 50); autoFocusForm = false; }
 }
 
+// ── 정렬 ──────────────────────────────────────────────────
+// 탭마다 따로 기억한다. 새로고침하면 기본값(등록시간순)으로 돌아간다.
+let sortBy = {};
+const SORT_OPTS = {
+  work:  [['priority','중요도순'], ['created','등록시간순'], ['name','가나다순'], ['due','마감일순']],
+  shop:  [['created','등록시간순'], ['name','가나다순'], ['ordered','주문일순']],
+  life:  [['created','등록시간순'], ['name','가나다순']],
+  media: [['created','등록시간순'], ['name','가나다순']],
+  place: [['created','등록시간순'], ['name','가나다순']],
+  pray:  [['created','등록시간순'], ['name','가나다순']],
+};
+function currentSort() {
+  const opts = SORT_OPTS[currentCat] || SORT_OPTS.life;
+  const key = sortBy[currentCat];
+  return opts.some(o => o[0] === key) ? key : 'created';
+}
+function setSort(key) { sortBy[currentCat] = key; render(); }
+
+function sortItems(list, key) {
+  const newest = (a, b) => new Date(b.created) - new Date(a.created);
+  let cmp;
+  if (key === 'name') {
+    cmp = (a, b) => a.text.localeCompare(b.text, 'ko') || newest(a, b);
+  } else if (key === 'priority') {
+    const rank = { high: 0, medium: 1, low: 2 };
+    cmp = (a, b) => ((rank[a.priority] ?? 3) - (rank[b.priority] ?? 3)) || newest(a, b);
+  } else if (key === 'due') {
+    // 기한 없는 항목은 맨 뒤
+    cmp = (a, b) => {
+      const da = a.due ? dday(a.due) : Infinity, db = b.due ? dday(b.due) : Infinity;
+      return (da === db) ? newest(a, b) : da - db;
+    };
+  } else if (key === 'ordered') {
+    // 주문한 것만 주문일 기준(최근 먼저), 주문 안 한 항목은 맨 뒤
+    cmp = (a, b) => {
+      if (!!a.ordered !== !!b.ordered) return a.ordered ? -1 : 1;
+      if (a.ordered && b.ordered && a.ordered !== b.ordered) return a.ordered < b.ordered ? 1 : -1;
+      return newest(a, b);
+    };
+  } else {
+    cmp = newest;
+  }
+  // 어떤 정렬이든 끝난 항목은 아래로 (기존 동작 유지)
+  return [...list].sort((a, b) => (a.done !== b.done ? (a.done ? 1 : -1) : cmp(a, b)));
+}
+
 function getFiltered() {
   let filtered = items.filter(i => i.cat === currentCat);
   if (currentCat === 'pray') {
     if (['praying','answered','closed'].includes(currentFilter))
       filtered = filtered.filter(i => prayStatus(i) === currentFilter);
-    return filtered.sort((a,b) => new Date(b.created) - new Date(a.created));
+  } else {
+    if (currentFilter==='active')   filtered = filtered.filter(i => !i.done && !isShipping(i));
+    if (currentFilter==='shipping') filtered = filtered.filter(i => isShipping(i));
+    if (currentFilter==='done')     filtered = filtered.filter(i => i.done);
+    if (currentFilter==='overdue')  filtered = filtered.filter(i => !i.done && i.due && dday(i.due) < 0);
   }
-  if (currentFilter==='active')   filtered = filtered.filter(i => !i.done && !isShipping(i));
-  if (currentFilter==='shipping') filtered = filtered.filter(i => isShipping(i));
-  if (currentFilter==='done')     filtered = filtered.filter(i => i.done);
-  if (currentFilter==='overdue') filtered = filtered.filter(i => !i.done && i.due && dday(i.due) < 0);
-  filtered.sort((a,b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    const da = a.due ? dday(a.due) : 9999, db = b.due ? dday(b.due) : 9999;
-    if (da !== db) return da - db;
-    return new Date(b.created) - new Date(a.created);
-  });
-  return filtered;
+  return sortItems(filtered, currentSort());
 }
 
 function renderList() {
@@ -1394,6 +1477,21 @@ function hideDueDate() {
 // 기도 탭은 '진행 중' 대신 '기도중'이 기본 필터
 function defaultFilter(cat) { return cat === 'pray' ? 'praying' : 'active'; }
 function switchCat(cat) { currentCat=cat; currentFilter=defaultFilter(cat); autoFocusForm=true; render(); }
+// 넓은 화면이면 버튼 가로 나열, 좁으면 드롭다운 — 전환은 CSS 미디어쿼리가 담당한다.
+// (둘 다 그려놓고 CSS로 하나만 보여주므로 창 크기를 바꾸면 그 자리에서 바뀐다)
+function renderSort() {
+  const opts = SORT_OPTS[currentCat] || SORT_OPTS.life;
+  const cur = currentSort();
+  document.getElementById('sortCtrl').innerHTML = `
+    <div class="sort-buttons">
+      ${opts.map(([k, l]) => `
+        <button class="sort-btn${k === cur ? ' active' : ''}" onclick="setSort('${k}')">${l}</button>`).join('')}
+    </div>
+    <select class="sort-select" onchange="setSort(this.value)" aria-label="정렬">
+      ${opts.map(([k, l]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>`;
+}
+
 function setFilter(f) { currentFilter=f; render(); }
 function openDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='flex'; document.getElementById(`due-input-${id}`)?.focus(); }
 function closeDueEdit(id) { document.getElementById(`due-edit-${id}`).style.display='none'; }
